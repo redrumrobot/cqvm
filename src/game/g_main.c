@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "g_local.h"
 
-#define QVM_NAME       "Rezyn QVM 1.1" " (Lakitu7"
+#define QVM_NAME       "cQVM"
 #define QVM_VERSIONNUM      "5.5)"
 
 level_locals_t  level;
