@@ -148,6 +148,7 @@ ifeq ($(wildcard .svn),.svn)
   SVN_REV=$(shell LANG=C svnversion .)
   ifneq ($(SVN_REV),)
     SVN_VERSION=$(VERSION)_SVN$(SVN_REV)
+    SVN_ID=$(SVN_REV)
     USE_SVN=1
   endif
 endif
@@ -743,7 +744,8 @@ ifeq ($(GENERATE_DEPENDENCIES),1)
 endif
 
 ifeq ($(USE_SVN),1)
-  BASE_CFLAGS += -DSVN_VERSION=\\\"$(SVN_VERSION)\\\"
+  BASE_CFLAGS += -DSVN_VERSION=\\\"$(SVN_VERSION)\\\" -DSVN_ID=\\\"$(SVN_ID)\\\"
+  Q3CFLAGS += -DSVN_ID=\"$(SVN_ID)\"
 endif
 
 define DO_CC       
@@ -858,7 +860,7 @@ endif
 
 define DO_Q3LCC
 @echo "Q3LCC $<"
-@$(Q3LCC) -o $@ $<
+@$(Q3LCC) -o $@ $(Q3CFLAGS) $<
 endef
 
 #############################################################################
