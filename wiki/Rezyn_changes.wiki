@@ -1,0 +1,435 @@
+﻿#summary These are the changes ported from Rezyn's QVM
+These changes are from [http://mysite.verizon.net/johne/rezynqvm.html Rezyn's QVM]. This readme is from there as well. They are included in their own Wiki document because they are useful to people, but do not reflect work done only to this QVM.
+
+=Changes.txt=
+
+Rezyn's QVM 1.1      - patch list -        June 4, 2009
+
+Tremulous game enhancements and toys for Lakitu7's QVM v 5.5
+
+All these patches combined create the big patch:
+  Rezyn_game_QVM_1_1_0.patch
+
+These patches are numbered incrementally, applying them in
+order of lowest to highest guarantees the easiest path.
+
+Patches that are dependent on other patches or are easier
+to apply after another patch are denoted with **:
+  ** requires - patch listed is required to be applied first
+  ** easywith - patch is not necessary, but conflicts may arise
+     or parts may fail that depend on this patch
+
+======= Patch Set is for Lakitu7 QVM release 5.5 ========
+
+rez_a000_QVM_1.1_README.txt
+  Overview of features and changes, how to build QVM
+
+rez_a001_QVM_1.1_CHANGES.txt
+  This file
+
+rez_l010_lak550_maplog_updates.patch
+  maplog now logs !restart
+
+rez_l030_lak550_welcome_message.patch
+  g_welcomeMsg:     Message to display when players connect
+  g_welcomeMsgTime: Time to display the message in seconds
+
+rez_l040_lak550_deconwarn_info.patch
+  Include buildable type when warning players/admins about
+    deconning protected buildables
+  Also warn admins that are on spectator, and flood protect message
+
+rez_l050_lak550_verify_guid_ip_ghost.patch
+  Add GUID format validation
+  Add clientinfo IP string validation
+  Add g_maxGhosts to control max clients from same IP
+
+rez_l062_lak550_flag_suspendban_immunity.patch
+  Add (f) !flag and !unflag to control flags of fellow (lower) admins
+  Add (I) !immunity to give a registered player immunity from IP bans
+          (GUID based bans still apply), uses flag 'W'
+          NOTE: original patch used '&', but that conflicts with
+                the existing admin_stealth flag in the Lakitu7 QVM.
+  Add (J) !suspendban to temporarily suspend an existing ban
+    == 061 added missing !unflag
+    == 062 added !flaglist to list all flags in the QVM
+
+rez_l070_lak550_adminlog.patch
+  Add (A) !adminlog to access admin command and player vote history
+
+rez_l080_lak550_retribution_percentages.patch
+  Scale retribution to each player based on amount of friendly fire
+  they deal to a teammate. ( g_retribution )
+  Also cancel retribution when the player completely heals
+
+rez_l090_lak550_tklog.patch
+  Add (t) !tklog to log recent teamkill activity
+
+rez_l100_lak550_credit_overflow.patch
+  g_creditOverflow: Credit overflows onto teammates
+    0 = off 
+    1 = distribute to teammates evenly
+    2 = give to higher ranked teammates first (by score)
+
+rez_l111_lak550_denyweapon.patch
+  Add (d) !denyweapon and !allowweapon
+    disable a player's ability to use one or more types
+    of classes or weapons, use 'all' to deny all but the basics
+    == 111 no longer allows denyweapon on self
+
+rez_l120_lak550_demo.patch
+  Add (?) !demo to toggle visibility of admin chat
+    (so they are not seen when recording a demo)
+
+rez_l133_lak550_intermission_map_votes.patch
+  Add intermission map voting, by adding *VOTE* sections to
+  the map rotation.
+  g_mapRotationVote: Time in seconds to allow for choosing
+                     a map in intermission.
+                     default=15
+  g_readyPercent: Percent of players that need to be ready
+                  to speed up moving past intermission scoreboard.
+                  default=0 (off, old scorboard ready rules apply)
+  
+  EXAMPLE vote section for maprotation.cfg:
+    *VOTE*
+      {
+      map1
+      map2
+      map3
+      }
+  In place of a normal map name, use the special name *VOTE*
+  followed by a bracketed section that contains up to 8 maps.
+    == 131 fixed false errors on server console
+    == 132 adds top 3 maps indicator and g_nextMap messages
+    == 133 merged patch #rez_l440 to update !rotation
+
+rez_l143_lak550_custom_votes.patch
+  Adds extend votes
+    g_extendVotesPercent: percent of votes needed to pass
+      default is 74, 0 disables extend votes
+    g_extendVotesCount: number time an extend vote can be called
+      default is 2
+    g_extendVotesTime: number of minutes to extend timelimit
+                       when extend vote passes
+      default is 10
+  Adds layout votes
+  Adds g_defeatVoteMinTime to set minimum time before which admit
+    defeat votes are not allowed, value is in seconds, default is 60
+  Adds percent to pass support to team votes
+  Extends g_allowVote by adding 2 additional settings:
+    2 = disable team voting
+    3 = disable team kick votes
+  Players can not switch or leave team during a team vote
+
+  Custom votes are now easy:
+  g_customVote1 through g_customVote8
+   g_customVote cvars uses a comma delimited format:
+    "votename,Vote message string,vote pass command[,percent]"
+      votename:            name to use with /callvote
+      Vote message string: message displayed on screen
+      vote pass command:   command run on server when vote passes
+             (semicolons can be used to define multiple commands)
+      percent:             percent of votes needed to pass
+            (if percent is not present, uses g_customVotePercent)
+  g_customVotePercent is the default vote percent needed for
+    custom votes to pass
+  == 141 changed flag of listlayouts to same as listmaps (j)
+  == 142 merged patch #rez_p660 to add color, and CP to votes
+  == 143 added g_defeatVoteMinTime and fixed g_allowVote = 2
+
+rez_l150_lak550_dynamic_bps.patch
+  Adds dynamic build points based on player count
+    g_dynamicBuildPoints: default=0 (off, use standard bps cvars)
+      value to add for each player that is joined to a team
+  math = DefaultBPS + (TotalPlayersOnBothTeams * g_dynamicBuildPoints)
+
+rez_l161_lak550_mark.patch
+  Add second mode to marked decon, setting
+    g_markDeconstruct to 2 will allow the use of /mark to toggle
+    a buildable for deconstruction. reload will also toggle.
+    == 161 Fixed reload toggling mark and protect for aliens
+
+rez_l170_lak550_newbie_nobuild.patch
+  Adds g_newbieNoBuild, which prints a message to players that have
+   not set a name when they try build or deconstruct a buildable.
+  g_newbieNoBuildMessage will set the message to print, by default
+   includes instructions for setting a name.
+    ** easywith rez_l160_lak550_mark.patch
+
+rez_l180_lak550_negative_admin_levels.patch
+  Allow saving of negative admin levels
+  update !listadmins to allow listing negative levels
+    (example: !listadmins 1 -1)
+
+rez_l190_lak550_silent_specme.patch
+  add silent option to !specme for admins with !kick permission,
+  whereby joining of spectators is not announced to players
+
+rez_l201_lak550_chat_channels_seen.patch
+  Add chat channels and !seen command
+    /join # <password>: join a channel # with optional password
+    /part #:            leave a channel #
+    /0 /1 ... /8 /9:    talk in a joined channel #
+  Adds !seen to look up when a player was last on the server
+    shares admin flag with !listadmins
+  == 201 fixed password argument of /join
+
+rez_l210_lak550_expire.patch
+  Add (G) !expire command, which resets the 5 oldest
+  level 1 admins to 0 if they have not played on the server
+  within g_adminExpireTime days, as reported by !seen.
+  Actions must be confirmed with the '!expire confirm' option,
+  otherwise matching players are only listed and not expired.
+  shares admin flag with !readconfig
+   ** requires rez_l200_lak550_chat_channels_seen.patch
+
+rez_l222_lak550_sprees_outlaw.patch
+  Add sprees and !outlaw
+    g_killingSpree:  Reward killer of a player that is on a roll
+    g_bleedingSpree: Base punishes players that hurt teammates/base
+    g_feedingSpree:  Retard spawn rate for those that feed
+  all cvars default to 0 (off)
+   killing and feeding sprees are kills/feeds per minute
+   for bleeding spree, each increment is equivelant to 100 HP
+     of bleeding team per minute.
+  !outlaw (flag 'O') controls a player's bleeding spree value
+    ** requires rez_l090_lak550_tklog.patch
+    == 221 fixed missing sprees in tklog
+    == 222 fixed deconning inside hovel triggering bleed
+
+rez_l230_lak550_register_password.patch
+  Adds password ability to register, and to specify admin level
+  g_adminRegisterLevel: default 1
+      highest level register will accept  without a password
+  g_adminRegisterAdminLevel: default 0 (off)
+      highest level allowed when using a password
+  g_adminRegisterAdminPass:  the password
+
+rez_l240_lak550_practice_mode.patch
+  Adds ([) !practice: allows setting text, which for players
+  with that text in their name can join any team regardless
+  of balance.
+  Turns off after # of map changes specified on the command.
+
+rez_l250_lak550_free_credits.patch
+  Adds g_freeCredits cvar, which gives players full credits
+  after each death (when they spawn). when the cvar is set
+  higher than 1, counts down on each map change then turns
+  itself off (0). default is off (0).
+    ** easywith rez_l240_lak550_practice_mode.patch
+
+rez_l262_lak550_karma.patch
+  Karma, persistents between visits for registered players
+    g_karma: 0=off (default)
+             1=on
+             2=on + auto register players with GUID
+  karma tries to track how a player contributes or detracts
+  from their team. higher karma is 'better'
+    ** requires rez_l200_lak550_chat_channels_seen.patch
+    ** easywith rez_l221_lak550_sprees_outlaw.patch
+    == 261 fixed botched port that put random code in wrong function
+    == 262 fixed karma update on map change while player connected
+
+rez_l270_lak550_crazy_g_mods.patch
+  My crazy g_mods patch that lets these cvars adjust game balance, most
+  require a map change to take effect.
+    g_modBuildableHealth   Buildable health
+    g_modBuildableSpeed    Buildable fire rate
+    g_modBuildableCount    Number of OMs/RCs allowed
+                         ( 0 = normal, 2 or more is enable count OMs/RCs )
+    g_modHumanStamina      Human stamina
+    g_modHumanHealth       Human health
+    g_modAlienHealth       Alien health
+    g_modAlienRegenRange   Alien regen rate is based on distance from base
+                         ( 0 = normal, 1 = enable )
+    g_modHumanRate         Human fire rate
+    g_modAlienRate         Alien fire rate
+    g_modWeaponAmmo        Weapon ammo per clip
+    g_modWeaponReload      Weapon reload time
+    g_modTurretAngle       Allow high turret build angles
+                         ( 0 = normal, 1 = enable )
+    g_modStage3Strength    Alter stage 3 buildable ( hives and teslas )
+    g_modMainStrength      Damage/range modifier for Reactor and Overmind
+  unless noted, cvar value is in percent of normal.
+  0 is disabled, the default. a value of 100 will offer no change as it
+  is 100 percent of normal, 50 would be half and 200 would be twice
+  the normal, etc.
+
+rez_l281_lak550_auto_kick_revert.patch
+  Adds auto kick on excessive team bleeding
+    g_bleedingSpreeKick, default 0 off
+   (kicks when player goes 20 percent over bleeding spree threshold)
+  Adds auto ban when kicked twice within a period of time
+    g_adminBanRepeatKicks, default 0 off
+   (value is time in hours, this is the time period within which
+    if a player is kicked twice the original kick will become a ban
+    and be extended to g_adminBanRepeatKicks hours)
+  Adds auto revert deconned/teamkilled buildables when player is kicked
+    g_autoRevert, default 0 off
+   (value is number items to revert, must be tk/decon by that player and
+    within 5 minutes of kick)
+    ** requires rez_l221_lak550_sprees_outlaw.patch
+    ** easywith rez_l261_lak550_karma.patch
+    == 281 fixed new bans from tripping the repeat kick checker
+           and added autorevert to ban
+
+rez_l291_lak550_kickban_logging.patch
+  Logs kicks and bans to games.log
+    == 291 added ip and guid to the log output
+
+rez_l311_lak550_vampire_SD.patch
+  Add Vampire Sudden Death, the cvars:
+    g_vampireDeathTime  VSD time in minutes, should be after normal SD
+    g_vampireDeath      VSD is active
+    g_vampireDeathInfo  text to CP to users default is '!info vampire'
+  example !info vampire info-vampire.txt:
+    ---- cut paste ---
+^6Vampire Sudden Death^7, explained:
+^2 * Both team bases self destruct
+^2 * Player health slowly decreases
+^2 * Damage to enemy goes to attacker as gained health
+^2 * Damage to teammates gives them your health
+^2 * Humans regain free ammo over time
+^2 * No medkit or alien health regeneration
+    ---- cut paste ---
+  == 311 fixed health damage over time and medkit message
+
+rez_l351_lak550_realadminname_fixes.patch
+  fix suspendban to use the registered admin name when
+  updating a ban record
+  == 351 updated patch for Lakitu7 QVM release 5.5, which
+         fixed adjustban however subnetban was overlooked.
+
+rez_l360_lak550_flexible_pause.patch
+  adds (S) !unpause so that !pause is no longer a toggle
+  adds individual pausing of players by name or slot #
+  can pause all players with * then unpause specific player
+  to undo a decon, etc.
+
+rez_l373_lak550_fix_markdecon.patch
+  backport most of the markdecon code from (current) svn 1143
+  to fix placing of new buildables over marked buildables
+    ** easywith rez_l270_lak550_crazy_g_mods.patch
+      (the g_mod patch is not required, however a merge
+       conflict will need to be hand resolved without it)
+    == 371 fixed building spawns blocked by marked buildable
+           and backports fix for killing spawns by building
+           on top of spawn
+    == 372 cleaned up a corner case error return value
+    == 373 allows g_markDeconstruct cvar to be changed,
+           instead of read-only
+
+rez_l421_lak550_buildpoint_recover.patch
+  add Build Point Recovery. When a buildable is killed, it's build
+  points are slowly regained for use over time. The rate becomes
+  slower with each stage advance of your team.
+    g_buildPointsRecoverRate sets how many build points to recover
+      per minute, default is 0 (off, recovery feature is disabled)
+  a value of 25 is a good point to start
+  * credit to Mercenaries Guild dev team (mgdev) for the whole idea
+  == 421 fixed some minor issues
+
+rez_l450_lak550_dcc_distance_check_fix.patch
+  fix bug in Defence Computer check when it is far from map origin
+
+rez_l460_lak550_oldstyle_subnets_work.patch
+  allow old style subnets to work, and fix use of unzeroed memory
+
+rez_l471_lak550_showbans_color_expired.patch
+  show expired bans in !showbans
+  use color to indicate subnets, expired, and suspended bans
+  == 471 adds update for unrelated showbans issue
+
+rez_l480_lak550_ban_log_warning_updates.patch
+  update admin chat warning to include banned GUID matches
+
+rez_l490_lak550_adjustban_unban_update.patch
+  extend g_adminMaxBan to include !adjustban and !unban
+  add support of +/- modifier to adjustban
+
+rez_l500_lak550_subnet_overflow_fix.patch
+  fix overflowing integers in subnet code by making them unsigned
+
+rez_l510_lak550_turret_aim.patch
+  adds /aim to set a turret aim direction when idle
+  enable with g_turretAim, default is 0 (off)
+
+rez_l520_lak550_listadmins_offset_fix.patch
+  fix offset when using !listadmins admin level search
+
+
+ -- patches based from p-g-qvm --
+
+
+rez_p611_lak550_killer_hp.patch
+  Add g_killerHP cvar to control printing of killer's
+  health points when a player dies
+    == 611 fixed color after killer's name
+
+rez_p620_lak550_slap_drop.patch
+  Add (x) !slap to slap players around or unstick them
+  Add (X) !drop to disconnect players
+
+rez_p631_lak550_bring.patch
+  Add (h) !bring to move to a player's location when spectator
+  == 631 fixed bringing to a spectator following a player
+
+rez_p640_lak550_teamstats.patch
+  Add g_teamStatus which allows /teamstatus command to display
+  critical information about the team
+
+rez_p650_lak550_chat_team_color.patch
+  Colorize the team indicators [S], [A], [H] on chat messages.
+
+rez_p670_lak550_bubbles.patch
+  Add (q) !bubbles to draw attention to a player
+
+
+ -- patches that require nearly all of the above patches --
+
+
+rez_r531_lak550_multichar_admin_flags.patch
+  merge lakitu7's support for multi character admin flags
+
+rez_r541_lak550_merge_svn150_to_164.patch
+  merge fixes from lakitu7 svn from 150 to 164
+
+rez_r550_lak550_popular_map_votes.patch
+  adds a popular map group:
+    g_popularMaps             space separated list of maps
+    g_popularMapsVotePercent  vote percent needed to pass for these maps
+  maps list in g_popularMaps will require g_popularMapsVotePercent,
+  all other maps will use the standard g_mapVotesPercent.
+
+rez_r560_lak550_vote_kick_blame_minvotes.patch
+  kick reason includes who initiated the vote
+
+rez_r570_lak550_g_idlemapswitch.patch
+  adds g_idleMapSwitch, which when enabled will reduce the timelimit
+  when no one is joined to a team for g_idleMapSwitch minutes. Only has
+  effect when the current map is not from the map rotation.
+  default is 0 (off)
+
+rez_r580_lak550_flag_by_name.patch
+  allows flag and unflag to work by player or admin name, moved the name
+  lookup code from setlevel into it's own utility function
+
+rez_r590_lak550_flag_cleanup.patch
+  clean up the !flaglist code to be more efficient
+
+rez_r600_lak550_bleeding_spree_fixes.patch
+  fix bleeding spree to work for aliens (mostly white space changes)
+
+
+ -- final touch ups --
+
+
+rez_z800_lak550_final_touches.patch
+  Add /mark and /teamstatus to !help command list
+
+rez_z901_lak550_branding.patch
+  QVM release versioning
+
+
+
