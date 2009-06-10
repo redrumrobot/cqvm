@@ -3,25 +3,20 @@
 {
   \\ MOD \\
 
-#define W       300
-#define H       240
-#define BUTT_W  45
-#define BUTT_H  35
-#define BORDER  10
-
   menuDef
   {
     name "mod"
-    visible MENU_FALSE
-    fullscreen MENU_FALSE
-    rect (320-(W/2)) (240-(H/2)) W H
+    visible 0
+    fullscreen 0
+    rect 160 120 320 240
     focusColor 1 .75 0 1
-    style WINDOW_STYLE_FILLED
-    border WINDOW_BORDER_FULL
+    style 1
+    border 1
     popup
     onEsc
     {
-      close mod
+      close mod;
+      open main
     }
     onOpen
     {
@@ -31,21 +26,21 @@
     itemDef
     {
       name window
-      rect 0 0 W H
+      rect 0 0 320 240
       style WINDOW_STYLE_FILLED
       backcolor 0 0 0 1
-      visible MENU_TRUE
+      visible 1
       decoration
 
       border WINDOW_BORDER_FULL
       borderSize 1.0
       borderColor 0.5 0.5 0.5 1
     }
-
+    
     itemDef
     {
       name modlist
-      rect BORDER BORDER (W-(2*BORDER)) (H-(BUTT_H+BORDER))
+      rect 10 10 300 200
       type ITEM_TYPE_LISTBOX
       style WINDOW_STYLE_EMPTY
       elementwidth 120
@@ -55,53 +50,56 @@
       feeder FEEDER_MODS
       textalign 3
       textaligny 14
-      border WINDOW_BORDER_FULL
+      border 1
       bordercolor   0.5 0.5 0.5 0.5
       forecolor     1   1   1   1
       backcolor     0.2 0.2 0.2 1
       outlinecolor  0.1 0.1 0.1 0.5
-      visible MENU_TRUE
+      visible 1
       doubleClick
       {
-        play "sound/misc/menu1.wav";
+        play "sound/misc/menu1.wav"; 
         uiScript RunMod
       }
     }
 
     itemDef
     {
-      name load
-      text "Load"
-      type ITEM_TYPE_BUTTON
+      name ok
+      text "OK"
+      type 1
       textscale .25
-      rect (W-(2*BUTT_W)) (H-BUTT_H) BUTT_W BUTT_H
-      textalign ALIGN_CENTER
-      textvalign VALIGN_CENTER
+      rect 250 210 30 26
+      textalign 1
+      textalignx 15
+      textaligny 20
       forecolor 1 1 1 1
-      visible MENU_TRUE
+      visible 1
       action
-      {
+      { 
         play "sound/misc/menu1.wav";
         close mod;
         uiScript RunMod
       }
     }
-
+    
     itemDef
     {
       name cancel
       text "Cancel"
-      type ITEM_TYPE_BUTTON
+      type 1
       textscale .25
-      rect (W-BUTT_W) (H-BUTT_H) BUTT_W BUTT_H
-      textalign ALIGN_CENTER
-      textvalign VALIGN_CENTER
+      rect 280 210 30 26
+      textalign 1
+      textalignx 15
+      textaligny 20
       forecolor 1 1 1 1
-      visible MENU_TRUE
+      visible 1
       action
-      {
+      { 
         play "sound/misc/menu3.wav";
-        close mod
+        close mod;
+        open main
       }
     }
   }

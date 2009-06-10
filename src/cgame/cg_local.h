@@ -79,6 +79,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define TEAM_OVERLAY_MAXNAME_WIDTH  12
 #define TEAM_OVERLAY_MAXLOCATION_WIDTH  16
 
+#define DEFAULT_MODEL       "sarge"
+#define DEFAULT_TEAM_MODEL  "sarge"
+#define DEFAULT_TEAM_HEAD   "sarge"
+
 typedef enum
 {
   FOOTSTEP_NORMAL,
@@ -547,7 +551,7 @@ typedef struct trailBeam_s
 // because corpses after respawn are outside the normal
 // client numbering range
 
-// smoothing of view and model for WW transitions
+//TA: smoothing of view and model for WW transitions
 #define   MAXSMOOTHS          32
 
 typedef struct
@@ -562,7 +566,7 @@ typedef struct
 
 typedef struct
 {
-  lerpFrame_t legs, torso, nonseg, weapon;
+  lerpFrame_t legs, torso, flag, nonseg;
   int         painTime;
   int         painDirection;  // flip from 0 to 1
 
@@ -630,6 +634,7 @@ typedef struct centity_s
 
   lerpFrame_t           lerpFrame;
 
+  //TA:
   buildableAnimNumber_t buildableAnim;    //persistant anim number
   buildableAnimNumber_t oldBuildableAnim; //to detect when new anims are set
   particleSystem_t      *buildablePS;
@@ -702,7 +707,9 @@ typedef struct
   qboolean    infoValid;
 
   char        name[ MAX_QPATH ];
-  team_t      team;
+  pTeam_t     team;
+
+  int         botSkill;                   // 0 = not bot, 1-5 = bot
 
   vec3_t      color1;
   vec3_t      color2;
@@ -714,6 +721,12 @@ typedef struct
   int         curWeapon;
 
   int         handicap;
+  int         wins, losses;               // in tourney mode
+
+  int         teamTask;                   // task in teamplay (offence/defence)
+  qboolean    teamLeader;                 // true when this is a team leader
+
+  int         powerups;                   // so can display quad/flag status
 
   int         medkitUsageTime;
   int         invulnerabilityStartTime;
@@ -726,6 +739,8 @@ typedef struct
   // gameplay
   char        modelName[ MAX_QPATH ];
   char        skinName[ MAX_QPATH ];
+  char        headModelName[ MAX_QPATH ];
+  char        headSkinName[ MAX_QPATH ];
 
   qboolean    newAnims;                   // true if using the new mission pack animations
   qboolean    fixedlegs;                  // true if legs yaw is always the same as torso yaw
@@ -756,9 +771,6 @@ typedef struct
 
   sfxHandle_t customFootsteps[ 4 ];
   sfxHandle_t customMetalFootsteps[ 4 ];
-
-  char        voice[ MAX_VOICE_NAME_LEN ];
-  int         voiceTime;
 } clientInfo_t;
 
 
@@ -812,13 +824,6 @@ typedef struct weaponInfo_s
   qhandle_t         barrelModel;
   qhandle_t         flashModel;
 
-  qhandle_t         weaponModel3rdPerson;
-  qhandle_t         barrelModel3rdPerson;
-  qhandle_t         flashModel3rdPerson;
-
-  animation_t       animations[ MAX_WEAPON_ANIMATIONS ];
-  qboolean          noDrift;
-
   vec3_t            weaponMidpoint;   // so it will rotate centered instead of by tag
 
   qhandle_t         weaponIcon;
@@ -864,6 +869,7 @@ typedef struct
 
 //======================================================================
 
+//TA:
 typedef struct
 {
   vec3_t    alienBuildablePos[ MAX_GENTITIES ];
@@ -1025,6 +1031,7 @@ typedef struct
 
   // attacking player
   int           attackerTime;
+  int           voiceTime;
 
   // reward medals
   int           rewardStack;
@@ -1092,26 +1099,25 @@ typedef struct
   char          testModelBarrelName[MAX_QPATH];
   qboolean      testGun;
 
-  int           spawnTime;                          // fovwarp
-  int           weapon1Time;                        // time when BUTTON_ATTACK went t->f f->t
-  int           weapon2Time;                        // time when BUTTON_ATTACK2 went t->f f->t
-  int           weapon3Time;                        // time when BUTTON_USE_HOLDABLE went t->f f->t
+  int           spawnTime;                          //TA: fovwarp
+  int           weapon1Time;                        //TA: time when BUTTON_ATTACK went t->f f->t
+  int           weapon2Time;                        //TA: time when BUTTON_ATTACK2 went t->f f->t
+  int           weapon3Time;                        //TA: time when BUTTON_USE_HOLDABLE went t->f f->t
   qboolean      weapon1Firing;
   qboolean      weapon2Firing;
   qboolean      weapon3Firing;
 
-  int           boostedTime;
   int           poisonedTime;
 
-  vec3_t        lastNormal;                         // view smoothage
-  vec3_t        lastVangles;                        // view smoothage
-  smooth_t      sList[ MAXSMOOTHS ];                // WW smoothing
+  vec3_t        lastNormal;                         //TA: view smoothage
+  vec3_t        lastVangles;                        //TA: view smoothage
+  smooth_t      sList[ MAXSMOOTHS ];                //TA: WW smoothing
 
-  int           forwardMoveTime;                    // for struggling
+  int           forwardMoveTime;                    //TA: for struggling
   int           rightMoveTime;
   int           upMoveTime;
 
-  float         charModelFraction;                  // loading percentages
+  float         charModelFraction;                  //TA: loading percentages
   float         mediaFraction;
   float         buildablesFraction;
 
@@ -1361,7 +1367,7 @@ typedef struct
 
   clientInfo_t  clientinfo[ MAX_CLIENTS ];
 
-  // corpse info
+  //TA: corpse info
   clientInfo_t  corpseinfo[ MAX_CLIENTS ];
 
   int           cursorX;
@@ -1377,51 +1383,57 @@ typedef struct
 
   // media
   cgMedia_t           media;
-
-  voice_t       *voices;
-  clientList_t  ignoreList;
 } cgs_t;
-
-typedef struct
-{
-  char *cmd;
-  void ( *function )( void );
-} consoleCommand_t;
 
 //==============================================================================
 
 extern  cgs_t     cgs;
 extern  cg_t      cg;
 extern  centity_t cg_entities[ MAX_GENTITIES ];
-extern  displayContextDef_t  cgDC;
 
+//TA: weapon limit expanded:
+//extern  weaponInfo_t  cg_weapons[MAX_WEAPONS];
 extern  weaponInfo_t    cg_weapons[ 32 ];
+//TA: upgrade infos:
 extern  upgradeInfo_t   cg_upgrades[ 32 ];
 
+//TA: buildable infos:
 extern  buildableInfo_t cg_buildables[ BA_NUM_BUILDABLES ];
 
 extern  markPoly_t      cg_markPolys[ MAX_MARK_POLYS ];
 
-extern  vmCvar_t    cg_teslaTrailTime;
 extern  vmCvar_t    cg_centertime;
 extern  vmCvar_t    cg_runpitch;
 extern  vmCvar_t    cg_runroll;
+extern  vmCvar_t    cg_bobup;
+extern  vmCvar_t    cg_bobpitch;
+extern  vmCvar_t    cg_bobroll;
 extern  vmCvar_t    cg_swingSpeed;
 extern  vmCvar_t    cg_shadows;
+extern  vmCvar_t    cg_gibs;
 extern  vmCvar_t    cg_drawTimer;
 extern  vmCvar_t    cg_drawClock;
 extern  vmCvar_t    cg_drawFPS;
 extern  vmCvar_t    cg_drawDemoState;
 extern  vmCvar_t    cg_drawSnapshot;
+extern  vmCvar_t    cg_draw3dIcons;
+extern  vmCvar_t    cg_drawIcons;
+extern  vmCvar_t    cg_drawAmmoWarning;
 extern  vmCvar_t    cg_drawCrosshair;
 extern  vmCvar_t    cg_drawCrosshairNames;
+extern  vmCvar_t    cg_drawRewards;
+extern  vmCvar_t    cg_drawTeamOverlay;
+extern  vmCvar_t    cg_teamOverlayUserinfo;
 extern  vmCvar_t    cg_crosshairX;
 extern  vmCvar_t    cg_crosshairY;
+extern  vmCvar_t    cg_drawStatus;
 extern  vmCvar_t    cg_draw2D;
 extern  vmCvar_t    cg_animSpeed;
 extern  vmCvar_t    cg_debugAnim;
 extern  vmCvar_t    cg_debugPosition;
 extern  vmCvar_t    cg_debugEvents;
+extern  vmCvar_t    cg_teslaTrailTime;
+extern  vmCvar_t    cg_railTrailTime;
 extern  vmCvar_t    cg_errorDecay;
 extern  vmCvar_t    cg_nopredict;
 extern  vmCvar_t    cg_debugMove;
@@ -1430,41 +1442,64 @@ extern  vmCvar_t    cg_showmiss;
 extern  vmCvar_t    cg_footsteps;
 extern  vmCvar_t    cg_addMarks;
 extern  vmCvar_t    cg_brassTime;
-extern  vmCvar_t    cg_viewsize;
-extern  vmCvar_t    cg_drawGun;
 extern  vmCvar_t    cg_gun_frame;
 extern  vmCvar_t    cg_gun_x;
 extern  vmCvar_t    cg_gun_y;
 extern  vmCvar_t    cg_gun_z;
+extern  vmCvar_t    cg_drawGun;
+extern  vmCvar_t    cg_viewsize;
 extern  vmCvar_t    cg_tracerChance;
 extern  vmCvar_t    cg_tracerWidth;
 extern  vmCvar_t    cg_tracerLength;
 extern  vmCvar_t    cg_autoswitch;
-extern  vmCvar_t    cg_thirdPerson;
+extern  vmCvar_t    cg_ignore;
+extern  vmCvar_t    cg_simpleItems;
+extern  vmCvar_t    cg_fov;
+extern  vmCvar_t    cg_zoomFov;
 extern  vmCvar_t    cg_thirdPersonRange;
 extern  vmCvar_t    cg_thirdPersonAngle;
+extern  vmCvar_t    cg_thirdPerson;
 extern  vmCvar_t    cg_stereoSeparation;
 extern  vmCvar_t    cg_lagometer;
+extern  vmCvar_t    cg_drawAttacker;
 extern  vmCvar_t    cg_synchronousClients;
 extern  vmCvar_t    cg_stats;
+extern  vmCvar_t    cg_forceModel;
+extern  vmCvar_t    cg_buildScript;
 extern  vmCvar_t    cg_paused;
 extern  vmCvar_t    cg_blood;
+extern  vmCvar_t    cg_predictItems;
+extern  vmCvar_t    cg_deferPlayers;
 extern  vmCvar_t    cg_drawFriend;
 extern  vmCvar_t    cg_teamChatsOnly;
 extern  vmCvar_t    cg_noVoiceChats;
 extern  vmCvar_t    cg_noVoiceText;
-extern  vmCvar_t    cg_hudFiles;
+extern  vmCvar_t    cg_scorePlum;
 extern  vmCvar_t    cg_smoothClients;
 extern  vmCvar_t    pmove_fixed;
 extern  vmCvar_t    pmove_msec;
-extern  vmCvar_t    cg_cameraMode;
+//extern  vmCvar_t    cg_pmove_fixed;
+extern  vmCvar_t    cg_cameraOrbit;
+extern  vmCvar_t    cg_cameraOrbitDelay;
 extern  vmCvar_t    cg_timescaleFadeEnd;
 extern  vmCvar_t    cg_timescaleFadeSpeed;
 extern  vmCvar_t    cg_timescale;
+extern  vmCvar_t    cg_cameraMode;
+extern  vmCvar_t    cg_smallFont;
+extern  vmCvar_t    cg_bigFont;
 extern  vmCvar_t    cg_noTaunt;
+extern  vmCvar_t    cg_noProjectileTrail;
+extern  vmCvar_t    cg_oldRail;
+extern  vmCvar_t    cg_oldRocket;
+extern  vmCvar_t    cg_oldPlasma;
+extern  vmCvar_t    cg_trueLightning;
+extern  vmCvar_t    cg_creepRes;
 extern  vmCvar_t    cg_drawSurfNormal;
 extern  vmCvar_t    cg_drawBBOX;
+extern  vmCvar_t    cg_debugAlloc;
 extern  vmCvar_t    cg_wwSmoothTime;
+extern  vmCvar_t    cg_wwFollow;
+extern  vmCvar_t    cg_wwToggle;
 extern  vmCvar_t    cg_depthSortParticles;
 extern  vmCvar_t    cg_bounceParticles;
 extern  vmCvar_t    cg_consoleLatency;
@@ -1482,12 +1517,12 @@ extern  vmCvar_t    cg_painBlendMax;
 extern  vmCvar_t    cg_painBlendScale;
 extern  vmCvar_t    cg_painBlendZoom;
 
-extern  vmCvar_t    cg_debugVoices;
-
+//TA: hack to get class an carriage through to UI module
 extern  vmCvar_t    ui_currentClass;
 extern  vmCvar_t    ui_carriage;
 extern  vmCvar_t    ui_stages;
 extern  vmCvar_t    ui_dialog;
+extern  vmCvar_t    ui_loading;
 extern  vmCvar_t    ui_voteActive;
 extern  vmCvar_t    ui_alienTeamVoteActive;
 extern  vmCvar_t    ui_humanTeamVoteActive;
@@ -1496,10 +1531,7 @@ extern  vmCvar_t    cg_debugRandom;
 
 extern  vmCvar_t    cg_optimizePrediction;
 extern  vmCvar_t    cg_projectileNudge;
-
-extern  vmCvar_t    cg_voice;
-
-extern  vmCvar_t    cg_emoticons;
+extern  vmCvar_t    cg_unlagged;
 
 //
 // cg_main.c
@@ -1532,7 +1564,7 @@ void        CG_AddNotifyText( void );
 //
 // cg_view.c
 //
-void        CG_addSmoothOp( vec3_t rotAxis, float rotAngle, float timeMod );
+void        CG_addSmoothOp( vec3_t rotAxis, float rotAngle, float timeMod ); //TA
 void        CG_TestModel_f( void );
 void        CG_TestGun_f( void );
 void        CG_TestModelNextFrame_f( void );
@@ -1577,11 +1609,12 @@ void        CG_AddLagometerFrameInfo( void );
 void        CG_AddLagometerSnapshotInfo( snapshot_t *snap );
 void        CG_CenterPrint( const char *str, int y, int charWidth );
 void        CG_DrawActive( stereoFrame_t stereoView );
-void        CG_OwnerDraw( float x, float y, float w, float h, float text_x,
-                          float text_y, int ownerDraw, int ownerDrawFlags,
-                          int align, int textalign, int textvalign, float special,
-                          float scale, vec4_t color,
-                          qhandle_t shader, int textStyle );
+void        CG_OwnerDraw( float x, float y, float w, float h, float text_x, float text_y,
+                          int ownerDraw, int ownerDrawFlags, int align, float special,
+                          float scale, vec4_t color, qhandle_t shader, int textStyle);
+void        CG_Text_Paint( float x, float y, float scale, vec4_t color, const char *text, float adjust, int limit, int style );
+int         CG_Text_Width( const char *text, float scale, int limit );
+int         CG_Text_Height( const char *text, float scale, int limit );
 float       CG_GetValue(int ownerDraw);
 void        CG_RunMenuScript(char **args);
 void        CG_SetPrintString( int type, const char *p );
@@ -1600,9 +1633,9 @@ void        CG_DrawField( float x, float y, int width, float cw, float ch, int v
 void        CG_Player( centity_t *cent );
 void        CG_Corpse( centity_t *cent );
 void        CG_ResetPlayerEntity( centity_t *cent );
+void        CG_AddRefEntityWithPowerups( refEntity_t *ent, int powerups, int team );
 void        CG_NewClientInfo( int clientNum );
-void        CG_PrecacheClientInfo( class_t class, char *model, char *skin );
-void        CG_TeamJoinMessage( clientInfo_t *newInfo, clientInfo_t *ci );
+void        CG_PrecacheClientInfo( pClass_t class, char *model, char *skin );
 sfxHandle_t CG_CustomSound( int clientNum, const char *soundName );
 void        CG_PlayerDisconnect( vec3_t org );
 void        CG_Bleed( vec3_t origin, vec3_t normal, int entityNum );
@@ -1622,7 +1655,7 @@ void        CG_AlienBuildableExplosion( vec3_t origin, vec3_t dir );
 //
 // cg_animation.c
 //
-void        CG_RunLerpFrame( lerpFrame_t *lf, float scale );
+void        CG_RunLerpFrame( lerpFrame_t *lf );
 
 //
 // cg_animmapobj.c
@@ -1742,6 +1775,14 @@ void          CG_ShaderStateChanged(void);
 void          CG_Respawn( void );
 void          CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops );
 void          CG_CheckChangedPredictableEvents( playerState_t *ps );
+
+//
+// cg_mem.c
+//
+void          CG_InitMemory( void );
+void          *CG_Alloc( int size );
+void          CG_Free( void *ptr );
+void          CG_DefragmentMemory( void );
 
 //
 // cg_attachment.c
@@ -2004,8 +2045,6 @@ int           trap_Key_GetKey( const char *binding );
 void          trap_Key_KeynumToStringBuf( int keynum, char *buf, int buflen );
 void          trap_Key_GetBindingBuf( int keynum, char *buf, int buflen );
 void          trap_Key_SetBinding( int keynum, const char *binding );
-void          trap_Key_SetOverstrikeMode( qboolean state );
-qboolean      trap_Key_GetOverstrikeMode( void );
 
 int           trap_CIN_PlayCinematic( const char *arg0, int xpos, int ypos, int width, int height, int bits );
 e_status      trap_CIN_StopCinematic( int handle );

@@ -1303,7 +1303,7 @@ void Touch_DoorTrigger( gentity_t *ent, gentity_t *other, trace_t *trace )
   if( other->s.eType == ET_BUILDABLE )
     return;
 
-  if( other->client && other->client->sess.spectatorState != SPECTATOR_NOT )
+  if( other->client && other->client->sess.sessionTeam == TEAM_SPECTATOR )
   {
     // if the door is not open and not opening
     if( ent->parent->moverState != MOVER_1TO2 &&
@@ -1334,6 +1334,11 @@ void Think_SpawnNewDoorTrigger( gentity_t *ent )
   gentity_t *other;
   vec3_t    mins, maxs;
   int       i, best;
+
+  //TA: disable shootable doors
+  // set all of the slaves as shootable
+  //for( other = ent; other; other = other->teamchain )
+  //  other->takedamage = qtrue;
 
   // find the bounds of everything on the team
   VectorCopy( ent->r.absmin, mins );
@@ -1707,8 +1712,8 @@ void SP_func_door_model( gentity_t *ent )
   ent->s.apos.trDuration = 0;
   VectorClear( ent->s.apos.trDelta );
 
-  ent->s.misc   = (int)ent->animation[ 0 ];                  //first frame
-  ent->s.weapon = abs( (int)ent->animation[ 1 ] );           //number of frames
+  ent->s.powerups  = (int)ent->animation[ 0 ];                  //first frame
+  ent->s.weapon    = abs( (int)ent->animation[ 1 ] );           //number of frames
 
   //must be at least one frame -- mapper has forgotten animation key
   if( ent->s.weapon == 0 )
@@ -2226,13 +2231,13 @@ void Blocked_Train( gentity_t *self, gentity_t *other )
         vec3_t    dir;
         gentity_t *tent;
 
-        if( other->buildableTeam == TEAM_ALIENS )
+        if( other->biteam == BIT_ALIENS )
         {
           VectorCopy( other->s.origin2, dir );
           tent = G_TempEntity( other->s.origin, EV_ALIEN_BUILDABLE_EXPLOSION );
           tent->s.eventParm = DirToByte( dir );
         }
-        else if( other->buildableTeam == TEAM_HUMANS )
+        else if( other->biteam == BIT_HUMANS )
         {
           VectorSet( dir, 0.0f, 0.0f, 1.0f );
           tent = G_TempEntity( other->s.origin, EV_HUMAN_BUILDABLE_EXPLOSION );

@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 // g_public.h -- game module information visible to server
 
-#define GAME_API_VERSION  9
+#define GAME_API_VERSION  8
 
 // entity->svFlags
 // the server does not know how to interpret most of the values
@@ -31,6 +31,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // special server behaviors
 #define SVF_NOCLIENT            0x00000001  // don't send entity to clients, even if it has effects
 
+// TTimo
+// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=551
 #define SVF_CLIENTMASK 0x00000002
 
 #define SVF_BROADCAST           0x00000020  // send to all connected clients

@@ -101,10 +101,6 @@ equ trap_Parse_LoadSource             -97
 equ trap_Parse_FreeSource             -98
 equ trap_Parse_ReadToken              -99
 equ trap_Parse_SourceFileAndLine      -100
-equ trap_Key_SetOverstrikeMode        -101
-equ trap_Key_GetOverstrikeMode        -102
-
-equ trap_S_SoundDuration              -103
 
 equ memset                            -201
 equ memcpy                            -202

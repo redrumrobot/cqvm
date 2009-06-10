@@ -316,6 +316,8 @@ punctuation_t default_punctuations[] =
   {NULL, 0}
 };
 
+char basefolder[MAX_QPATH];
+
 /*
 ===============
 Parse_CreatePunctuationTable
@@ -817,14 +819,14 @@ static int Parse_ReadNumber(script_t *script, token_t *token)
   {
     c = *script->script_p;
     //check for a LONG number
-    if ( (c == 'l' || c == 'L')
+    if ( (c == 'l' || c == 'L') // bk001204 - brackets
          && !(token->subtype & TT_LONG))
     {
       script->script_p++;
       token->subtype |= TT_LONG;
     }
     //check for an UNSIGNED number
-    else if ( (c == 'u' || c == 'U')
+    else if ( (c == 'u' || c == 'U') // bk001204 - brackets
         && !(token->subtype & (TT_UNSIGNED | TT_FLOAT)))
     {
       script->script_p++;
@@ -898,10 +900,10 @@ static int Parse_ReadPrimitive(script_t *script, token_t *token)
 
 /*
 ===============
-Parse_ReadScriptToken
+Parse_ReadSciptToken
 ===============
 */
-static int Parse_ReadScriptToken(script_t *script, token_t *token)
+static int Parse_ReadSciptToken(script_t *script, token_t *token)
 {
   //if there is a token available (from UnreadToken)
   if (script->tokenavailable)
@@ -979,7 +981,7 @@ static void Parse_StripDoubleQuotes(char *string)
 {
   if (*string == '\"')
   {
-    memmove( string, string + 1, strlen( string ) + 1 );
+    strcpy(string, string+1);
   }
   if (string[strlen(string)-1] == '\"')
   {
@@ -1005,11 +1007,16 @@ Parse_LoadScriptFile
 static script_t *Parse_LoadScriptFile(const char *filename)
 {
   fileHandle_t fp;
+  char pathname[MAX_QPATH];
   int length;
   void *buffer;
   script_t *script;
 
-  length = FS_FOpenFileRead( filename, &fp, qfalse );
+  if (strlen(basefolder))
+    Com_sprintf(pathname, sizeof(pathname), "%s/%s", basefolder, filename);
+  else
+    Com_sprintf(pathname, sizeof(pathname), "%s", filename);
+  length = FS_FOpenFileRead( pathname, &fp, qfalse );
   if (!fp) return NULL;
 
   buffer = Z_Malloc(sizeof(script_t) + length + 1);
@@ -1038,6 +1045,7 @@ static script_t *Parse_LoadScriptFile(const char *filename)
   FS_Read(script->buffer, length, fp);
   FS_FCloseFile(fp);
   //
+  script->length = COM_Compress(script->buffer);
 
   return script;
 }
@@ -1089,6 +1097,16 @@ static void Parse_FreeScript(script_t *script)
 {
   if (script->punctuationtable) Z_Free(script->punctuationtable);
   Z_Free(script);
+}
+
+/*
+===============
+Parse_SetBaseFolder
+===============
+*/
+static void Parse_SetBaseFolder(char *path)
+{
+  Com_sprintf(basefolder, sizeof(basefolder), path);
 }
 
 /*
@@ -1241,7 +1259,7 @@ static int Parse_ReadSourceToken(source_t *source, token_t *token)
   while(!source->tokens)
   {
     //if there's a token to read from the script
-    if (Parse_ReadScriptToken(source->scriptstack, token)) return qtrue;
+    if (Parse_ReadSciptToken(source->scriptstack, token)) return qtrue;
     //if at the end of the script
     if (Parse_EndOfScript(source->scriptstack))
     {
@@ -1537,7 +1555,11 @@ static int Parse_ExpandBuiltinDefine(source_t *source, token_t *deftoken, define
                     token_t **firsttoken, token_t **lasttoken)
 {
   token_t *token;
+#ifdef _WIN32
+  unsigned long t;  //  time_t t; //to prevent LCC warning
+#else
   time_t t;
+#endif
 
   char *curtime;
 
@@ -2546,7 +2568,7 @@ static int Parse_Directive_include(source_t *source)
         break;
       }
       if (token.type == TT_PUNCTUATION && *token.string == '>') break;
-      strncat(path, token.string, MAX_QPATH - 1);
+      strncat(path, token.string, MAX_QPATH);
     }
     if (*token.string != '>')
     {
@@ -3491,6 +3513,7 @@ int Parse_LoadSourceHandle(const char *filename)
   }
   if (i >= MAX_SOURCEFILES)
     return 0;
+  Parse_SetBaseFolder("");
   source = Parse_LoadSourceFile(filename);
   if (!source)
     return 0;

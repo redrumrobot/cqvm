@@ -31,7 +31,7 @@ CG_DoorAnimation
 */
 static void CG_DoorAnimation( centity_t *cent, int *old, int *now, float *backLerp )
 {
-  CG_RunLerpFrame( &cent->lerpFrame, 1.0f );
+  CG_RunLerpFrame( &cent->lerpFrame );
 
   *old      = cent->lerpFrame.oldFrame;
   *now      = cent->lerpFrame.frame;
@@ -75,7 +75,7 @@ void CG_ModelDoor( centity_t *cent )
   ent.nonNormalizedAxes = qtrue;
 
   //setup animation
-  anim.firstFrame   = es->misc;
+  anim.firstFrame   = es->powerups;
   anim.numFrames    = es->weapon;
   anim.reversed     = !es->legsAnim;
   anim.flipflop     = qfalse;
@@ -117,7 +117,7 @@ static void CG_AMOAnimation( centity_t *cent, int *old, int *now, float *backLer
       cent->lerpFrame.frameTime     += delta;
     }
 
-    CG_RunLerpFrame( &cent->lerpFrame, 1.0f );
+    CG_RunLerpFrame( &cent->lerpFrame );
     cent->miscTime = cg.time;
   }
 
@@ -168,7 +168,7 @@ void CG_AnimMapObj( centity_t *cent )
   }
 
   //setup animation
-  anim.firstFrame = es->misc;
+  anim.firstFrame = es->powerups;
   anim.numFrames = es->weapon;
   anim.reversed = qfalse;
   anim.flipflop = qfalse;

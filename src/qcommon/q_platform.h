@@ -20,7 +20,7 @@ along with Tremulous; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
-
+//
 #ifndef __Q_PLATFORM_H
 #define __Q_PLATFORM_H
 
@@ -123,8 +123,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #ifdef __linux__
 
-#include <endian.h>
-
 #define OS_STRING "linux"
 #define ID_INLINE inline
 #define PATH_SEP '/'
@@ -169,25 +167,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #endif
 
-//=================================================================== BSD ===
+//=============================================================== FreeBSD ===
 
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#ifdef __FreeBSD__ // rb010123
 
-#include <sys/types.h>
 #include <machine/endian.h>
 
-#ifndef __BSD__
-  #define __BSD__
-#endif
-
-#if defined(__FreeBSD__)
 #define OS_STRING "freebsd"
-#elif defined(__OpenBSD__)
-#define OS_STRING "openbsd"
-#elif defined(__NetBSD__)
-#define OS_STRING "netbsd"
-#endif
-
 #define ID_INLINE inline
 #define PATH_SEP '/'
 
@@ -195,6 +181,32 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define ARCH_STRING "x86"
 #elif defined __axp__
 #define ARCH_STRING "alpha"
+#endif
+
+#if BYTE_ORDER == BIG_ENDIAN
+#define Q3_BIG_ENDIAN
+#else
+#define Q3_LITTLE_ENDIAN
+#endif
+
+#define DLL_EXT ".so"
+
+#endif
+
+//================================================================ NetBSD ===
+
+// This is very much like the FreeBSD one and can probably be merged
+#ifdef __NetBSD__
+
+#include <machine/endian.h>
+
+#define OS_STRING "netbsd"
+#define ID_INLINE inline
+#define PATH_SEP '/'
+
+#ifdef __i386__
+#define ARCH_STRING "x86"
+// Netbsd has alot of platforms
 #endif
 
 #if BYTE_ORDER == BIG_ENDIAN
@@ -229,22 +241,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #elif defined( _LITTLE_ENDIAN )
 #define Q3_LITTLE_ENDIAN
 #endif
-
-#define DLL_EXT ".so"
-
-#endif
-
-//================================================================== IRIX ===
-
-#ifdef __sgi
-
-#define OS_STRING "irix"
-#define ID_INLINE __inline
-#define PATH_SEP '/'
-
-#define ARCH_STRING "mips"
-
-#define Q3_BIG_ENDIAN // SGI's MIPS are always big endian
 
 #define DLL_EXT ".so"
 

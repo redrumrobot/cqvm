@@ -41,10 +41,6 @@ void AddScore( gentity_t *ent, int score )
   if( !ent->client )
     return;
 
-  // no scoring during pre-match warmup
-  if( level.warmupTime )
-    return;
-
   ent->client->ps.persistant[ PERS_SCORE ] += score;
   CalculateRanks( );
 }
@@ -121,7 +117,8 @@ char *modNames[ ] =
 
   "MOD_ASPAWN",
   "MOD_ATUBE",
-  "MOD_OVERMIND"
+  "MOD_OVERMIND",
+  "MOD_SLAP"
 };
 
 /*
@@ -136,26 +133,20 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
   int       killer;
   int       i, j;
   char      *killerName, *obit;
+  float     totalTK = 0;
   float     totalDamage = 0.0f;
+  float     percentDamage = 0.0f;
   gentity_t *player;
+  qboolean  tk = qfalse;
+  int       spreeRate = 0;
 
 
   if( self->client->ps.pm_type == PM_DEAD )
     return;
+  
 
   if( level.intermissiontime )
     return;
-
-  // stop any following clients
-  for( i = 0; i < level.maxclients; i++ )
-  {
-    if( level.clients[ i ].sess.spectatorState == SPECTATOR_FOLLOW &&
-        level.clients[ i ].sess.spectatorClient == self->client->ps.clientNum )
-    {
-      if( !G_FollowNewClient( &g_entities[ i ], 1 ) )
-        G_StopFollowing( &g_entities[ i ] );
-    }
-  }
 
   self->client->ps.pm_type = PM_DEAD;
   self->suicideTime = 0;
@@ -165,7 +156,26 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
     killer = attacker->s.number;
 
     if( attacker->client )
+    {
       killerName = attacker->client->pers.netname;
+      tk = ( attacker != self && attacker->client->ps.stats[ STAT_PTEAM ] 
+        == self->client->ps.stats[ STAT_PTEAM ] );
+
+      if( attacker != self && attacker->client->ps.stats[ STAT_PTEAM ]  == self->client->ps.stats[ STAT_PTEAM ] ) 
+      {
+        attacker->client->pers.statscounters.teamkills++;
+        attacker->client->pers.karma -= 300;
+        if( attacker->client->pers.teamSelection == PTE_ALIENS ) 
+        {
+          level.alienStatsCounters.teamkills++;
+        }
+        else if( attacker->client->pers.teamSelection == PTE_HUMANS )
+        {
+          level.humanStatsCounters.teamkills++;
+        }
+      }
+
+    }
     else
       killerName = "<non-client>";
   }
@@ -190,43 +200,136 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
     killer, self->s.number, meansOfDeath, killerName,
     self->client->pers.netname, obit );
 
-  // close any menus the client has open
+  //TA: close any menus the client has open
   G_CloseMenus( self->client->ps.clientNum );
 
-  // deactivate all upgrades
+  //TA: deactivate all upgrades
   for( i = UP_NONE + 1; i < UP_NUM_UPGRADES; i++ )
     BG_DeactivateUpgrade( i, self->client->ps.stats );
 
+  // killing spree over
+  if( self->client->pers.statscounters.spreekills == -1 )
+  {
+    spreeRate = 2;
+    trap_SendServerCommand( -1,
+     va( "print \"%s^7's killing spree has come to an end\n\"",
+     self->client->pers.netname ) );
+  }
+  self->client->pers.statscounters.spreekills = 0;
+
+  if( meansOfDeath == MOD_SLAP )
+  {
+    trap_SendServerCommand( -1,
+      va( "print \"%s^7 felt %s^7's authority\n\"",
+      self->client->pers.netname, killerName ) );
+    goto finish_dying;
+  }
+
   // broadcast the death event to everyone
-  ent = G_TempEntity( self->r.currentOrigin, EV_OBITUARY );
-  ent->s.eventParm = meansOfDeath;
-  ent->s.otherEntityNum = self->s.number;
-  ent->s.otherEntityNum2 = killer;
-  ent->r.svFlags = SVF_BROADCAST; // send to everyone
+  if( !tk )
+  {
+    ent = G_TempEntity( self->r.currentOrigin, EV_OBITUARY );
+    ent->s.eventParm = meansOfDeath;
+    ent->s.otherEntityNum = self->s.number;
+    ent->s.otherEntityNum2 = killer;
+    ent->r.svFlags = SVF_BROADCAST; // send to everyone
+  }
+  else if( attacker && attacker->client )
+  {
+    // tjw: obviously this is a hack and belongs in the client, but
+    //      this works as a temporary fix.
+    trap_SendServerCommand( -1,
+      va( "print \"%s^7 was killed by ^1TEAMMATE^7 %s^7 (Did %d damage to %d max)\n\"",
+      self->client->pers.netname, attacker->client->pers.netname, self->client->tkcredits[ attacker->s.number ], self->client->ps.stats[ STAT_MAX_HEALTH ] ) );
+    trap_SendServerCommand( attacker - g_entities,
+      va( "cp \"You killed ^1TEAMMATE^7 %s\"", self->client->pers.netname ) );
+    G_LogOnlyPrintf("%s^7 was killed by ^1TEAMMATE^7 %s^7 (Did %d damage to %d max)\n",
+      self->client->pers.netname, attacker->client->pers.netname, self->client->tkcredits[ attacker->s.number ], self->client->ps.stats[ STAT_MAX_HEALTH ] );
+    G_admin_tklog_log( attacker, self, meansOfDeath );
+  }
 
   self->enemy = attacker;
 
   self->client->ps.persistant[ PERS_KILLED ]++;
+  self->client->pers.statscounters.deaths++;
+  self->client->pers.karma -= 10;
+  if( self->client->pers.teamSelection == PTE_ALIENS ) 
+  {
+    level.alienStatsCounters.deaths++;
+  }
+  else if( self->client->pers.teamSelection == PTE_HUMANS )
+  {
+     level.humanStatsCounters.deaths++;
+  }
 
   if( attacker && attacker->client )
   {
     attacker->client->lastkilled_client = self->s.number;
 
+   if( g_killerHP.integer ||
+       ( g_devmapKillerHP.integer && g_cheats.integer ) )
+   {
+     trap_SendServerCommand( self-g_entities,
+       va( "print \"Your killer, %s^7, had %3i HP.\n\"",
+         killerName, attacker->health ) );
+   }
+
     if( attacker == self || OnSameTeam( self, attacker ) )
     {
       AddScore( attacker, -1 );
 
-      //punish team kills and suicides
-      if( attacker->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS )
-        G_AddCreditToClient( attacker->client, -1, qtrue );
-      else if( attacker->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS )
-        G_AddCreditToClient( attacker->client, -ASPAWN_VALUE, qtrue );
+      // Normal teamkill penalty
+      if( !g_retribution.integer )
+      {
+        if( attacker->client->ps.stats[ STAT_PTEAM ] == PTE_ALIENS )
+          G_AddCreditToClient( attacker->client, -FREEKILL_ALIEN, qtrue );
+        else if( attacker->client->ps.stats[ STAT_PTEAM ] == PTE_HUMANS )
+          G_AddCreditToClient( attacker->client, -FREEKILL_HUMAN, qtrue );
+      }
     }
     else
     {
       AddScore( attacker, 1 );
 
       attacker->client->lastKillTime = level.time;
+      attacker->client->pers.statscounters.kills++;
+      attacker->client->pers.karma += 50;
+      if( attacker->client->pers.teamSelection == PTE_ALIENS ) 
+      {
+        level.alienStatsCounters.kills++;
+      }
+      else if( attacker->client->pers.teamSelection == PTE_HUMANS )
+      {
+         level.humanStatsCounters.kills++;
+      }
+
+      if( g_killingSpree.integer > 2 )
+      {
+        if( attacker->client->pers.statscounters.spreekills >= 0 )
+          attacker->client->pers.statscounters.spreekills += 60;
+        if( attacker->client->pers.statscounters.spreekills > ( g_killingSpree.integer - 1 ) * 60 )
+        {
+          attacker->client->pers.statscounters.spreekills = -1;
+          attacker->client->pers.karma += 50;
+          trap_SendServerCommand( -1,
+            va( "print \"%s^3 is on a killing spree! killer gets a double reward bonus\n\"",
+            attacker->client->pers.netname ) );
+        }
+      }
+     }
+    
+    if( attacker == self )
+    {
+      attacker->client->pers.statscounters.suicides++;
+      attacker->client->pers.karma -= 100;
+      if( attacker->client->pers.teamSelection == PTE_ALIENS ) 
+      {
+        level.alienStatsCounters.suicides++;
+      }
+      else if( attacker->client->pers.teamSelection == PTE_HUMANS )
+      {
+        level.humanStatsCounters.suicides++;
+      }
     }
   }
   else if( attacker->s.eType != ET_BUILDABLE )
@@ -234,23 +337,177 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
   //total up all the damage done by every client
   for( i = 0; i < MAX_CLIENTS; i++ )
+  {
     totalDamage += (float)self->credits[ i ];
+    totalTK += (float)self->client->tkcredits[ i ];
+  }
+  // punish players for damaging teammates
+  if ( g_retribution.integer && totalTK )
+  {
+    int totalPrice;
+    int max = HUMAN_MAX_CREDITS;
+
+    if ( self->client->ps.stats[ STAT_PTEAM ] == PTE_ALIENS )
+    {
+      totalPrice = BG_ClassCanEvolveFromTo( PCL_ALIEN_LEVEL0, self->client->ps.stats[ STAT_PCLASS ], ALIEN_MAX_KILLS, 0 );
+      max = ALIEN_MAX_KILLS;
+    }
+    else
+    {
+      totalPrice = BG_GetValueOfEquipment( &self->client->ps );
+    }
+
+    if ( self->client->ps.persistant[ PERS_CREDIT ] + totalPrice > max )
+      totalPrice = max - self->client->ps.persistant[ PERS_CREDIT ];
+
+    if ( totalPrice > 0 )
+    {
+      totalTK += totalDamage;
+      if( totalTK < self->client->ps.stats[ STAT_MAX_HEALTH ] )
+        totalTK = self->client->ps.stats[ STAT_MAX_HEALTH ];
+
+      if ( self->client->ps.stats[ STAT_PTEAM ] == PTE_HUMANS )
+      {
+        for ( i = 0; i < MAX_CLIENTS; i++ )
+        {
+          int price;
+          // no retribution if self damage or enemy damage or building damage or no damage from this client
+          if ( i == self - g_entities || !g_entities[ i ].client ||
+               !OnSameTeam( &g_entities[ i ], self ) ||
+               !self->client->tkcredits[ i ] )
+            continue;
+
+          // calculate retribution price (rounded up)
+          price = ( totalPrice * self->client->tkcredits[ i ] ) / totalTK + 0.5f;
+          self->client->tkcredits[ i ] = 0;
+
+          // check for enough credits
+          if ( g_entities[ i ].client->ps.persistant[ PERS_CREDIT ] < price )
+            price = g_entities[ i ].client->ps.persistant[ PERS_CREDIT ];
+          if ( price )
+          {
+            G_AddCreditToClient( self->client, price, qtrue );
+            G_AddCreditToClient( g_entities[ i ].client, -price, qtrue );
+
+            trap_SendServerCommand( self->client->ps.clientNum,
+              va( "print \"Received ^3%d credits ^7from %s ^7in retribution.\n\"",
+                price, g_entities[ i ].client->pers.netname ) );
+            trap_SendServerCommand( g_entities[ i ].client->ps.clientNum,
+              va( "print \"Transfered ^3%d credits ^7to %s ^7in retribution.\n\"",
+                price, self->client->pers.netname ) );
+          }
+        }
+      }
+      else
+      {
+        int toPay[ MAX_CLIENTS ] = { 0 };
+        int frags = totalPrice;
+        int damageForEvo = totalTK / totalPrice;
+        for ( i = 0; i < MAX_CLIENTS; i++ )
+        {
+          // no retribution if self damage or enemy damage or building damage or no damage from this client
+          if ( i == self - g_entities || !g_entities[ i ].client ||
+               !OnSameTeam( &g_entities[ i ], self ) ||
+               !self->client->tkcredits[ i ] )
+            continue;
+
+          // find out how many full evos this client needs to pay
+          toPay[ i ] = ( totalPrice * self->client->tkcredits[ i ] ) / totalTK;
+          if ( toPay[ i ] > g_entities[ i ].client->ps.persistant[ PERS_CREDIT ] )
+            toPay[ i ] = g_entities[ i ].client->ps.persistant[ PERS_CREDIT ];
+          frags -= toPay[ i ];
+          self->client->tkcredits[ i ] -= damageForEvo * toPay[ i ];
+        }
+
+        // if we have not met the evo count, continue stealing evos
+        while ( 1 )
+        {
+          int maximum = 0;
+          int topClient = 0;
+          for ( i = 0; i < MAX_CLIENTS; i++ )
+          {
+            if ( self->client->tkcredits[ i ] > maximum && g_entities[ i ].client->ps.persistant[ PERS_CREDIT ] )
+            {
+              maximum = self->client->tkcredits[ i ];
+              topClient = i;
+            }
+          }
+          if ( !maximum )
+            break;
+          toPay[ topClient ]++;
+          self->client->tkcredits[ topClient ] = 0;
+          frags--;
+          if ( !frags )
+           break;
+        }
+        
+        // now move the evos around
+        for ( i = 0; i < MAX_CLIENTS; i++ )
+        {
+          if ( !toPay[ i ] )
+            continue;
+          
+          G_AddCreditToClient( self->client, toPay[ i ], qtrue );
+          G_AddCreditToClient( g_entities[ i ].client, -toPay[ i ], qtrue );
+
+          trap_SendServerCommand( self->client->ps.clientNum,
+            va( "print \"Received ^3%d ^7evos from %s ^7in retribution.\n\"",
+              toPay[ i ], g_entities[ i ].client->pers.netname ) );
+          trap_SendServerCommand( g_entities[ i ].client->ps.clientNum,
+            va( "print \"Transfered ^3%d ^7evos to %s ^7in retribution.\n\"",
+              toPay[ i ], self->client->pers.netname ) );
+        }
+      }
+    }
+  }
 
   // if players did more than DAMAGE_FRACTION_FOR_KILL increment the stage counters
   if( !OnSameTeam( self, attacker ) && totalDamage >= ( self->client->ps.stats[ STAT_MAX_HEALTH ] * DAMAGE_FRACTION_FOR_KILL ) )
   {
-    if( self->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS )
+    if( self->client->ps.stats[ STAT_PTEAM ] == PTE_HUMANS ) 
+    {
       trap_Cvar_Set( "g_alienKills", va( "%d", g_alienKills.integer + 1 ) );
-    else if( self->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS )
+      if( g_alienStage.integer < 2 )
+      {
+        self->client->pers.statscounters.feeds++;
+        self->client->pers.karma -= 25;
+        level.humanStatsCounters.feeds++;
+
+        if( g_feedingSpree.integer &&
+            level.reactorPresent &&
+            !G_BuildableRange( self->client->ps.origin, 600, BA_H_REACTOR ) &&
+            !G_BuildableRange( self->client->ps.origin, 200, BA_H_SPAWN ) )
+        {
+          self->client->pers.statscounters.spreefeeds += SPREE_FEED_VALUE;
+        }
+      }
+    }
+    else if( self->client->ps.stats[ STAT_PTEAM ] == PTE_ALIENS )
+    {
       trap_Cvar_Set( "g_humanKills", va( "%d", g_humanKills.integer + 1 ) );
+      if( g_humanStage.integer < 2 )
+      {
+        self->client->pers.statscounters.feeds++;
+        self->client->pers.karma -= 25;
+        level.alienStatsCounters.feeds++;
+
+        if( g_feedingSpree.integer &&
+            level.overmindPresent &&
+            !G_BuildableRange( self->client->ps.origin, 600, BA_A_OVERMIND ) &&
+            !G_BuildableRange( self->client->ps.origin, 200, BA_A_SPAWN ) )
+        {
+          self->client->pers.statscounters.spreefeeds += SPREE_FEED_VALUE;
+        }
+      }
+    }
   }
 
   if( totalDamage > 0.0f )
   {
-    if( self->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS )
+    if( self->client->ps.stats[ STAT_PTEAM ] == PTE_ALIENS )
     {
       //nice simple happy bouncy human land
-      float classValue = BG_Class( self->client->ps.stats[ STAT_CLASS ] )->value;
+      float classValue = BG_FindValueOfClass( self->client->ps.stats[ STAT_PCLASS ] );
 
       for( i = 0; i < MAX_CLIENTS; i++ )
       {
@@ -259,18 +516,28 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
         if( !player->client )
           continue;
 
-        if( player->client->ps.stats[ STAT_TEAM ] != TEAM_HUMANS )
+        if( player->client->ps.stats[ STAT_PTEAM ] != PTE_HUMANS )
           continue;
 
         if( !self->credits[ i ] )
           continue;
 
+        percentDamage = (float)self->credits[ i ] / totalDamage;
+        if( percentDamage > 0 && percentDamage < 1)
+        {
+          player->client->pers.statscounters.assists++;
+          level.humanStatsCounters.assists++;
+        }
+
+        if( spreeRate && player == attacker )
+          percentDamage *= (float)spreeRate;
+
         //add credit
         G_AddCreditToClient( player->client,
-            (int)( classValue * ( (float)self->credits[ i ] / totalDamage ) ), qtrue );
+            (int)( classValue * percentDamage ), qtrue );
       }
     }
-    else if( self->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS )
+    else if( self->client->ps.stats[ STAT_PTEAM ] == PTE_HUMANS )
     {
       //horribly complex nasty alien land
       float humanValue = BG_GetValueOfHuman( &self->client->ps );
@@ -284,7 +551,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
         if( !player->client )
           continue;
 
-        if( player->client->ps.stats[ STAT_TEAM ] != TEAM_ALIENS )
+        if( player->client->ps.stats[ STAT_PTEAM ] != PTE_ALIENS )
           continue;
 
         //this client did no damage
@@ -295,12 +562,23 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
         if( !unclaimedFrags )
           break;
 
-        frags = (int)floor( humanValue * ( (float)self->credits[ i ] / totalDamage ) );
+        percentDamage = (float)self->credits[ i ] / totalDamage;
+         if( percentDamage > 0 && percentDamage < 1)
+         {
+            player->client->pers.statscounters.assists++;
+            player->client->pers.karma += 25;
+            level.alienStatsCounters.assists++;
+         }
+    
+        frags = (int)floor( humanValue * percentDamage);
 
         if( frags > 0 )
         {
           //add kills
-          G_AddCreditToClient( player->client, frags, qtrue );
+          if( spreeRate && player == attacker )
+            G_AddCreditToClient( player->client, frags * spreeRate, qtrue );
+          else
+            G_AddCreditToClient( player->client, frags, qtrue );
 
           //can't revist this account later
           self->credits[ i ] = 0;
@@ -341,7 +619,10 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
             player = g_entities + topClient;
 
             //add kills
-            G_AddCreditToClient( player->client, 1, qtrue );
+            if( spreeRate && player == attacker )
+              G_AddCreditToClient( player->client, spreeRate, qtrue );
+            else
+              G_AddCreditToClient( player->client, 1, qtrue );
 
             //can't revist this account again
             self->credits[ topClient ] = 0;
@@ -363,12 +644,14 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
     if( client->pers.connected != CON_CONNECTED )
       continue;
 
-    if( client->sess.spectatorState == SPECTATOR_NOT )
+    if( client->sess.sessionTeam != TEAM_SPECTATOR )
       continue;
 
     if( client->sess.spectatorClient == self->s.number )
       ScoreboardMessage( g_entities + i );
   }
+
+finish_dying: // from MOD_SLAP
 
   VectorCopy( self->s.origin, self->client->pers.lastDeathLocation );
 
@@ -392,8 +675,40 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
   // g_forcerespawn may force spawning at some later time
   self->client->respawnTime = level.time + 1700;
 
-  // clear misc
-  memset( self->client->ps.misc, 0, sizeof( self->client->ps.misc ) );
+  if( g_feedingSpree.integer )
+  {
+    int maxfeed;
+
+    maxfeed = g_feedingSpree.integer * SPREE_FEED_VALUE;
+    if( self->client->pers.statscounters.spreefeeds > maxfeed )
+    {
+      self->client->respawnTime += SPREE_FEED_DELAY * (self->client->pers.statscounters.spreefeeds - maxfeed );
+      self->client->pers.karma -= 20;
+      trap_SendServerCommand( self->client->ps.clientNum,
+        va( "print \"You are on a feeding spree! respawn delayed %d seconds\n\"",
+        (self->client->respawnTime - level.time) / 1000 ) );
+    }
+  }
+
+  if( self->client->pers.bleeder )
+  {
+    int spreeLength;
+
+    spreeLength = self->client->pers.statscounters.spreebleeds / 10;
+    self->client->respawnTime += 9 * 1000;
+    
+    trap_SendServerCommand( self->client->ps.clientNum,
+      va( "print \"^3Bleeding has made you an enemy of your own base for ^7%d:%02d\n^1Respawn delayed ^7%d^1 seconds\n",
+        spreeLength / 60, spreeLength % 60,
+        ( self->client->respawnTime - level.time) / 1000 ) );
+    trap_SendServerCommand( self->client->ps.clientNum,
+      va( "cp \"^3Bleeding made you an enemy of your own base!\n\n^7for %d:%02d\n\n^1Respawn delayed %d seconds\"",
+        spreeLength / 60, spreeLength % 60,
+        ( self->client->respawnTime - level.time) / 1000 ) );
+  }
+
+  // remove powerups
+  memset( self->client->ps.powerups, 0, sizeof( self->client->ps.powerups ) );
 
   {
     // normal death
@@ -451,6 +766,9 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
   trap_LinkEntity( self );
 }
+
+
+////////TA: locdamage
 
 /*
 ===============
@@ -699,7 +1017,10 @@ static float G_CalcDamageModifier( vec3_t point, gentity_t *targ, gentity_t *att
 
   clientHeight = targ->r.maxs[ 2 ] - targ->r.mins[ 2 ];
 
-  BG_GetClientNormal( &targ->client->ps, normal );
+  if( targ->client->ps.stats[ STAT_STATE ] & SS_WALLCLIMBING )
+    VectorCopy( targ->client->ps.grapplePoint, normal );
+  else
+    VectorSet( normal, 0, 0, 1 );
 
   VectorMA( targOrigin, targ->r.mins[ 2 ], normal, floor );
   VectorSubtract( point, floor, pMINUSfloor );
@@ -748,6 +1069,11 @@ static float G_CalcDamageModifier( vec3_t point, gentity_t *targ, gentity_t *att
   }
   else
   {
+    if( attacker && attacker->client )
+    {
+      attacker->client->pers.statscounters.hitslocational++;
+      level.alienStatsCounters.hitslocational++;
+    }
     for( i = 0; i < g_numDamageRegions[ class ]; i++ )
     {
       qboolean rotationBound;
@@ -771,6 +1097,13 @@ static float G_CalcDamageModifier( vec3_t point, gentity_t *targ, gentity_t *att
           ( g_damageRegions[ class ][ i ].crouch ==
             ( targ->client->ps.pm_flags & PMF_DUCKED ) ) )
         modifier *= g_damageRegions[ class ][ i ].modifier;
+    }    
+    
+    if( attacker && attacker->client && modifier == 2 )
+    {
+      attacker->client->pers.statscounters.headshots++;
+      attacker->client->pers.karma += 5;
+      level.alienStatsCounters.headshots++;
     }
 
     for( i = UP_NONE + 1; i < UP_NUM_UPGRADES; i++ )
@@ -825,19 +1158,19 @@ void G_InitDamageLocations( void )
 
   for( i = PCL_NONE + 1; i < PCL_NUM_CLASSES; i++ )
   {
-    modelName = BG_ClassConfig( i )->modelName;
+    modelName = BG_FindModelNameForClass( i );
     Com_sprintf( filename, sizeof( filename ), "models/players/%s/locdamage.cfg", modelName );
 
     len = trap_FS_FOpenFile( filename, &fileHandle, FS_READ );
     if ( !fileHandle )
     {
-      G_Printf( S_COLOR_RED "file not found: %s\n", filename );
+      G_Printf( va( S_COLOR_RED "file not found: %s\n", filename ) );
       continue;
     }
 
     if( len >= MAX_LOCDAMAGE_TEXT )
     {
-      G_Printf( S_COLOR_RED "file too large: %s is %i, max allowed is %i", filename, len, MAX_LOCDAMAGE_TEXT );
+      G_Printf( va( S_COLOR_RED "file too large: %s is %i, max allowed is %i", filename, len, MAX_LOCDAMAGE_TEXT ) );
       trap_FS_FCloseFile( fileHandle );
       continue;
     }
@@ -851,7 +1184,7 @@ void G_InitDamageLocations( void )
 
   for( i = UP_NONE + 1; i < UP_NUM_UPGRADES; i++ )
   {
-    modelName = BG_Upgrade( i )->name;
+    modelName = BG_FindNameForUpgrade( i );
     Com_sprintf( filename, sizeof( filename ), "armour/%s.armour", modelName );
 
     len = trap_FS_FOpenFile( filename, &fileHandle, FS_READ );
@@ -862,7 +1195,7 @@ void G_InitDamageLocations( void )
 
     if( len >= MAX_LOCDAMAGE_TEXT )
     {
-      G_Printf( S_COLOR_RED "file too large: %s is %i, max allowed is %i", filename, len, MAX_LOCDAMAGE_TEXT );
+      G_Printf( va( S_COLOR_RED "file too large: %s is %i, max allowed is %i", filename, len, MAX_LOCDAMAGE_TEXT ) );
       trap_FS_FCloseFile( fileHandle );
       continue;
     }
@@ -874,6 +1207,8 @@ void G_InitDamageLocations( void )
     G_ParseArmourScript( buffer, i );
   }
 }
+
+////////TA: locdamage
 
 
 /*
@@ -900,11 +1235,11 @@ dflags    these flags are used to control how T_Damage works
 ============
 */
 
-// team is the team that is immune to this damage
+//TA: team is the team that is immune to this damage
 void G_SelectiveDamage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
          vec3_t dir, vec3_t point, int damage, int dflags, int mod, int team )
 {
-  if( targ->client && ( team != targ->client->ps.stats[ STAT_TEAM ] ) )
+  if( targ->client && ( team != targ->client->ps.stats[ STAT_PTEAM ] || targ->client->pers.bleeder ) )
     G_Damage( targ, inflictor, attacker, dir, point, damage, dflags, mod );
 }
 
@@ -916,6 +1251,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
   int     save;
   int     asave = 0;
   int     knockback;
+  float damagemodifier=0.0;
+  int takeNoOverkill;
 
   if( !targ->takedamage )
     return;
@@ -931,6 +1268,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
   if( !attacker )
     attacker = &g_entities[ ENTITYNUM_WORLD ];
 
+  if( attacker->client && attacker->client->pers.paused )
+    return;
+
   // shootable doors / buttons don't actually have any health
   if( targ->s.eType == ET_MOVER )
   {
@@ -945,7 +1285,9 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
   if( client )
   {
-    if( client->noclip )
+    if( client->noclip && !g_devmapNoGod.integer)
+      return;
+    if( client->pers.paused )
       return;
   }
 
@@ -959,13 +1301,13 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
   if( inflictor->s.weapon != WP_NONE )
   {
     knockback = (int)( (float)knockback *
-      BG_Weapon( inflictor->s.weapon )->knockbackScale );
+      BG_FindKnockbackScaleForWeapon( inflictor->s.weapon ) );
   }
 
   if( targ->client )
   {
     knockback = (int)( (float)knockback *
-      BG_Class( targ->client->ps.stats[ STAT_CLASS ] )->knockbackScale );
+      BG_FindKnockbackScaleForClass( targ->client->ps.stats[ STAT_PCLASS ] ) );
   }
 
   if( knockback > 200 )
@@ -1014,9 +1356,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
     // if the attacker was on the same team
     if( targ != attacker && OnSameTeam( targ, attacker ) )
     {
-      // if dretchpunt is enabled and this is a dretch, do dretchpunt instead of damage
       if( g_dretchPunt.integer &&
-          targ->client->ps.stats[ STAT_CLASS ] == PCL_ALIEN_LEVEL0 )
+        targ->client->ps.stats[ STAT_PCLASS ] == PCL_ALIEN_LEVEL0 )
       {
         vec3_t dir, push;
 
@@ -1026,33 +1367,66 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
         push[2] = 64.0f;
         VectorAdd( targ->client->ps.velocity, push, targ->client->ps.velocity );
         return;
+      } 
+      else if(mod == MOD_LEVEL4_CHARGE || mod == MOD_LEVEL3_POUNCE )
+      { // don't do friendly fire on movement attacks
+        if( g_friendlyFireMovementAttacks.value <= 0 || ( g_friendlyFire.value<=0 && g_friendlyFireAliens.value<=0 ) )
+          return;
+        else if( g_friendlyFireMovementAttacks.value > 0 && g_friendlyFireMovementAttacks.value < 1 )
+         damage =(int)(0.5 + g_friendlyFireMovementAttacks.value * (float) damage);
       }
-      // check if friendly fire has been disabled
-      else if( !g_friendlyFire.integer )
+      else if( g_friendlyFire.value <=0)
       {
-        if( !g_friendlyFireHumans.integer &&
-            targ->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS )
+        if( targ->client->ps.stats[ STAT_PTEAM ] == PTE_HUMANS )
         {
-          return;
+          if(g_friendlyFireHumans.value<=0)
+            return;
+          else if( g_friendlyFireHumans.value > 0 && g_friendlyFireHumans.value < 1 )
+            damage =(int)(0.5 + g_friendlyFireHumans.value * (float) damage);       
         }
-        if( !g_friendlyFireAliens.integer &&
-             targ->client->ps.stats[ STAT_TEAM ] == TEAM_ALIENS )
+        if( targ->client->ps.stats[ STAT_PTEAM ] == PTE_ALIENS )
         {
-          return;
+          if(g_friendlyFireAliens.value==0)
+            return;
+          else if( g_friendlyFireAliens.value > 0 && g_friendlyFireAliens.value < 1 )
+           damage =(int)(0.5 + g_friendlyFireAliens.value * (float) damage);
         }
+      }
+      else if( g_friendlyFire.value > 0 && g_friendlyFire.value < 1 )
+      {
+        damage =(int)(0.5 + g_friendlyFire.value * (float) damage);
       }
     }
 
     // If target is buildable on the same team as the attacking client
     if( targ->s.eType == ET_BUILDABLE && attacker->client &&
-        targ->buildableTeam == attacker->client->pers.teamSelection )
+        targ->biteam == attacker->client->pers.teamSelection )
     {
-      if( !g_friendlyBuildableFire.integer )
+      if(mod == MOD_LEVEL4_CHARGE || mod == MOD_LEVEL3_POUNCE ) 
+      {
+         if(g_friendlyFireMovementAttacks.value <= 0)
+           return;
+         else if(g_friendlyFireMovementAttacks.value > 0 && g_friendlyFireMovementAttacks.value < 1)
+           damage =(int)(0.5 + g_friendlyFireMovementAttacks.value * (float) damage);
+      }
+      if( g_friendlyBuildableFire.value <= 0 )
+      {
         return;
+      }
+      else if( g_friendlyBuildableFire.value > 0 && g_friendlyBuildableFire.value < 1 )
+      {
+         damage =(int)(0.5 + g_friendlyBuildableFire.value * (float) damage);
+      }
     }
 
     // check for godmode
-    if( targ->flags & FL_GODMODE )
+    if ( targ->flags & FL_GODMODE && !g_devmapNoGod.integer)
+      return;
+
+    if( level.paused )
+      return;
+    
+    if(targ->s.eType == ET_BUILDABLE && g_cheats.integer && g_devmapNoStructDmg.integer)
       return;
   }
 
@@ -1098,20 +1472,24 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
     // set the last client who damaged the target
     targ->client->lasthurt_client = attacker->s.number;
     targ->client->lasthurt_mod = mod;
-    take = (int)( (float)take * G_CalcDamageModifier( point, targ, attacker,
-                                                      client->ps.stats[ STAT_CLASS ], dflags ) );
+    
+    damagemodifier = G_CalcDamageModifier( point, targ, attacker, client->ps.stats[ STAT_PCLASS ], dflags );
+    take = (int)( (float)take * damagemodifier );
 
     //if boosted poison every attack
     if( attacker->client && attacker->client->ps.stats[ STAT_STATE ] & SS_BOOSTED )
     {
-      if( !( targ->client->ps.stats[ STAT_STATE ] & SS_POISONED ) &&
-          !BG_InventoryContainsUpgrade( UP_BATTLESUIT, targ->client->ps.stats ) &&
+      if( targ->client->ps.stats[ STAT_PTEAM ] == PTE_HUMANS &&
+          !( targ->client->ps.stats[ STAT_STATE ] & SS_POISONED ) &&
           mod != MOD_LEVEL2_ZAP &&
           targ->client->poisonImmunityTime < level.time )
       {
         targ->client->ps.stats[ STAT_STATE ] |= SS_POISONED;
         targ->client->lastPoisonTime = level.time;
         targ->client->lastPoisonClient = attacker;
+        attacker->client->pers.statscounters.repairspoisons++;
+        attacker->client->pers.karma += 1;
+        level.alienStatsCounters.repairspoisons++;
       }
     }
   }
@@ -1125,9 +1503,184 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
       targ->health, take, asave );
   }
 
-  // do the damage
+  takeNoOverkill = take;
+  if( takeNoOverkill > targ->health ) 
+  {
+    if(targ->health > 0)
+      takeNoOverkill = targ->health;
+    else
+      takeNoOverkill = 0;
+  }
+
   if( take )
   {
+    //Increment some stats counters
+    if( attacker && attacker->client )
+    {
+      if( targ->biteam == attacker->client->pers.teamSelection || OnSameTeam( targ, attacker ) ) 
+      {
+        attacker->client->pers.statscounters.ffdmgdone += takeNoOverkill;
+        if( attacker != targ )
+          attacker->client->pers.karma -= take;
+        if( attacker->client->pers.teamSelection == PTE_ALIENS ) 
+        {
+          level.alienStatsCounters.ffdmgdone+=takeNoOverkill;
+        }
+        else if( attacker->client->pers.teamSelection == PTE_HUMANS )
+        {
+          level.humanStatsCounters.ffdmgdone+=takeNoOverkill;
+        }
+
+        // bleeding spree
+        if( g_bleedingSpree.integer > 1 && attacker != targ &&
+            mod != MOD_SUICIDE && mod != MOD_TELEFRAG )
+        {
+          attacker->client->pers.statscounters.spreebleeds += take;
+
+          if( g_bleedingSpreeKick.integer && attacker->client->pers.bleeder &&
+              attacker->client->pers.statscounters.spreebleeds > g_bleedingSpree.integer * 100 + g_bleedingSpree.integer * 20 )
+          {
+            trap_SendConsoleCommand( EXEC_APPEND,
+              va("!kick %d auto-kick for team bleeding\n", ( attacker - g_entities )) );
+            attacker->client->pers.statscounters.spreebleeds = -9000;
+          }
+          else if( attacker->client->pers.statscounters.spreebleeds > g_bleedingSpree.integer * 100 &&
+                  !attacker->client->pers.bleeder )
+          {
+            attacker->client->pers.bleeder = qtrue;
+            attacker->client->pers.karma -= 500;
+            level.bleeders++;
+            trap_SendServerCommand( -1,
+              va( "print \"%s^3 has become an enemy of their own base\n\"",
+              attacker->client->pers.netname ) );
+            trap_SendServerCommand( attacker - g_entities,
+              "cp \"^1Your team bleeding has irritated your base!\"" );
+
+            G_admin_tklog_log( attacker, NULL, mod );
+
+            if( g_bleedingSpreeKick.integer )
+              trap_SendServerCommand( attacker - g_entities,
+               "print \"^1Continued bleeding will result in kick\n\"" );
+          }
+          else if( attacker->client->pers.statscounters.spreebleeds > g_bleedingSpree.integer * 66 &&
+                  !attacker->client->pers.bleeder &&
+                   attacker->client->pers.bleederLastWarn + 20 * 1000 < level.time )
+          {
+            attacker->client->pers.bleederLastWarn = level.time;
+            trap_SendServerCommand( attacker - g_entities,
+              "print \"^3Your bleeding is close to aggravating your base!\n\"" );
+            trap_SendServerCommand( attacker - g_entities,
+              "cp \"^1Your bleeding is close to aggravating your base!\"" );
+
+            if( g_bleedingSpreeKick.integer )
+              trap_SendServerCommand( attacker - g_entities,
+               "print \"^1Continued bleeding will result in kick\n\"" );
+          }
+        }
+      }
+      else if( targ->s.eType == ET_BUILDABLE )
+      {
+        attacker->client->pers.statscounters.structdmgdone += takeNoOverkill;
+        attacker->client->pers.karma += ( take / 10 );
+            
+        if( attacker->client->pers.teamSelection == PTE_ALIENS ) 
+        {
+          level.alienStatsCounters.structdmgdone+=takeNoOverkill;
+        }
+        else if( attacker->client->pers.teamSelection == PTE_HUMANS )
+        {
+          level.humanStatsCounters.structdmgdone+=takeNoOverkill;
+        }
+            
+        if( targ->health > 0 && ( targ->health - take ) <=0 )
+        {
+          attacker->client->pers.statscounters.structskilled++;
+          attacker->client->pers.karma += 10;
+          if( attacker->client->pers.teamSelection == PTE_ALIENS ) 
+          {
+            level.alienStatsCounters.structskilled++;
+          }
+          else if( attacker->client->pers.teamSelection == PTE_HUMANS )
+          {
+            level.humanStatsCounters.structskilled++;
+
+            if( attacker->client->pers.statscounters.spreefeeds )
+            {
+              attacker->client->pers.statscounters.spreefeeds -= take;
+              if( attacker->client->pers.statscounters.spreefeeds < 0 )
+                attacker->client->pers.statscounters.spreefeeds = 0;
+            }
+
+            if( attacker->client->pers.statscounters.spreebleeds > 10 )
+            {
+              attacker->client->pers.statscounters.spreebleeds -= take / 3;
+              if( attacker->client->pers.statscounters.spreebleeds < 10 )
+                attacker->client->pers.statscounters.spreebleeds = 10;
+            }
+          }
+        }
+      }
+      else if( targ->client )
+      {
+        attacker->client->pers.statscounters.dmgdone +=takeNoOverkill;
+        attacker->client->pers.karma += ( take / 10 );
+        attacker->client->pers.statscounters.hits++;
+        if( attacker->client->pers.teamSelection == PTE_ALIENS ) 
+        {
+          level.alienStatsCounters.dmgdone+=takeNoOverkill;
+        }
+        else if( attacker->client->pers.teamSelection == PTE_HUMANS )
+        {
+          level.humanStatsCounters.dmgdone+=takeNoOverkill;
+        }
+
+        if( attacker->client->pers.statscounters.spreefeeds )
+        {
+          attacker->client->pers.statscounters.spreefeeds -= take;
+          if( attacker->client->pers.statscounters.spreefeeds < 0 )
+            attacker->client->pers.statscounters.spreefeeds = 0;
+        }
+
+        if( attacker->client->pers.statscounters.spreebleeds > 10 )
+        {
+          attacker->client->pers.statscounters.spreebleeds -= take / 3;
+          if( attacker->client->pers.statscounters.spreebleeds < 10 )
+            attacker->client->pers.statscounters.spreebleeds = 10;
+        }
+      }
+    }
+
+    if( g_vampireDeath.integer && targ->client && attacker->client && targ != attacker )
+    {
+      if( OnSameTeam( targ, attacker ) )
+      {
+        if( mod == MOD_GRENADE )
+          return;
+
+        if( take > attacker->health )
+          take = attacker->health;
+
+        attacker->health -= take;
+        attacker->client->ps.stats[ STAT_HEALTH ] = attacker->health;
+        attacker->lastDamageTime = level.time;
+
+        if( attacker->health <= 0 )
+        {
+          if( attacker->health < -999 )
+            attacker->health = -999;
+          attacker->die( attacker, attacker, attacker, take, MOD_SUICIDE );
+        }
+
+        take = 0 - take;
+      }
+      else
+      {
+        attacker->health += takeNoOverkill;
+        attacker->client->ps.stats[ STAT_HEALTH ] = attacker->health;
+      }
+    }
+    
+    //Do the damage
     targ->health = targ->health - take;
 
     if( targ->client )
@@ -1135,11 +1688,13 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
     targ->lastDamageTime = level.time;
 
-    // add to the attackers "account" on the target
+    //TA: add to the attackers "account" on the target
     if( targ->client && attacker->client )
     {
       if( attacker != targ && !OnSameTeam( targ, attacker ) )
         targ->credits[ attacker->client->ps.clientNum ] += take;
+      else if( attacker != targ && OnSameTeam( targ, attacker ) )
+        targ->client->tkcredits[ attacker->client->ps.clientNum ] += takeNoOverkill;
     }
 
     if( targ->health <= 0 )
@@ -1217,6 +1772,8 @@ qboolean CanDamage( gentity_t *targ, vec3_t origin )
   return qfalse;
 }
 
+
+//TA:
 /*
 ============
 G_SelectiveRadiusDamage
@@ -1273,16 +1830,14 @@ qboolean G_SelectiveRadiusDamage( vec3_t origin, gentity_t *attacker, float dama
 
     points = damage * ( 1.0 - dist / radius );
 
-    if( CanDamage( ent, origin ) && ent->client &&
-        ent->client->ps.stats[ STAT_TEAM ] != team )
+    if( CanDamage( ent, origin ) )
     {
       VectorSubtract( ent->r.currentOrigin, origin, dir );
       // push the center of mass higher than the origin so players
       // get knocked into the air more
       dir[ 2 ] += 24;
-      hitClient = qtrue;
-      G_Damage( ent, NULL, attacker, dir, origin,
-          (int)points, DAMAGE_RADIUS|DAMAGE_NO_LOCDAMAGE, mod );
+      G_SelectiveDamage( ent, NULL, attacker, dir, origin,
+          (int)points, DAMAGE_RADIUS|DAMAGE_NO_LOCDAMAGE, mod, team );
     }
   }
 
@@ -1352,7 +1907,6 @@ qboolean G_RadiusDamage( vec3_t origin, gentity_t *attacker, float damage,
       // push the center of mass higher than the origin so players
       // get knocked into the air more
       dir[ 2 ] += 24;
-      hitClient = qtrue;
       G_Damage( ent, NULL, attacker, dir, origin,
           (int)points, DAMAGE_RADIUS|DAMAGE_NO_LOCDAMAGE, mod );
     }
@@ -1362,40 +1916,46 @@ qboolean G_RadiusDamage( vec3_t origin, gentity_t *attacker, float damage,
 }
 
 /*
-================
-G_LogDestruction
-
-Log deconstruct/destroy events
-================
+============
+G_Knockback
+============
 */
-void G_LogDestruction( gentity_t *self, gentity_t *actor, int mod )
+void G_Knockback( gentity_t *targ, vec3_t dir, int knockback )
 {
-  if( !actor || !actor->client )
-    return;
-
-  if( actor->client->ps.stats[ STAT_TEAM ] ==
-    BG_Buildable( self->s.modelindex )->team )
+  if( knockback && targ->client )
   {
-    G_TeamCommand( actor->client->ps.stats[ STAT_TEAM ],
-      va( "print \"%s ^3%s^7 by %s\n\"",
-        BG_Buildable( self->s.modelindex )->humanName,
-        mod == MOD_UNKNOWN ? "DECONSTRUCTED" : "DESTROYED",
-        actor->client->pers.netname ) );
-  }
+    vec3_t  kvel;
+    float   mass;
 
-  if( mod == MOD_UNKNOWN )
-    G_LogPrintf( "Decon: %d %d %d: %s^7 deconstructed %s\n",
-      actor->client->ps.clientNum,
-      self->s.modelindex,
-      mod,
-      actor->client->pers.netname,
-      BG_Buildable( self->s.modelindex )->name );
-  else
-    G_LogPrintf( "Decon: %d %d %d: %s^7 destroyed %s by %s\n",
-      actor->client->ps.clientNum,
-      self->s.modelindex,
-      mod,
-      actor->client->pers.netname,
-      BG_Buildable( self->s.modelindex )->name,
-      modNames[ mod ] );
+    mass = 200;
+
+    // Halve knockback for bsuits
+    if( targ->client &&
+        targ->client->ps.stats[ STAT_PTEAM ] == PTE_HUMANS &&
+        BG_InventoryContainsUpgrade( UP_BATTLESUIT, targ->client->ps.stats ) )
+      mass += 400;
+
+    // Halve knockback for crouching players
+    if(targ->client->ps.pm_flags&PMF_DUCKED) knockback /= 2;
+
+    VectorScale( dir, g_knockback.value * (float)knockback / mass, kvel );
+    VectorAdd( targ->client->ps.velocity, kvel, targ->client->ps.velocity );
+
+    // set the timer so that the other client can't cancel
+    // out the movement immediately
+    if( !targ->client->ps.pm_time )
+    {
+      int   t;
+
+      t = knockback * 2;
+      if( t < 50 )
+        t = 50;
+
+      if( t > 200 )
+        t = 200;
+      targ->client->ps.pm_time = t;
+      targ->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
+    }
+  }
 }
+

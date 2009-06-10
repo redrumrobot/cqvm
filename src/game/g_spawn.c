@@ -98,7 +98,7 @@ typedef enum
   F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
   F_GSTRING,      // string on disk, pointer in memory, TAG_GAME
   F_VECTOR,
-  F_VECTOR4,
+  F_VECTOR4,    //TA
   F_ANGLEHACK,
   F_ENTITY,     // index on disk, pointer in memory
   F_ITEM,       // index on disk, pointer in memory
@@ -234,6 +234,7 @@ spawn_t spawns[ ] =
   { "info_player_deathmatch",   SP_info_player_deathmatch },
   { "info_player_intermission", SP_info_player_intermission },
 
+  //TA: extra bits
   { "info_alien_intermission",  SP_info_alien_intermission },
   { "info_human_intermission",  SP_info_human_intermission },
 
@@ -243,8 +244,8 @@ spawn_t spawns[ ] =
   { "func_plat",                SP_func_plat },
   { "func_button",              SP_func_button },
   { "func_door",                SP_func_door },
-  { "func_door_rotating",       SP_func_door_rotating },
-  { "func_door_model",          SP_func_door_model },
+  { "func_door_rotating",       SP_func_door_rotating }, //TA
+  { "func_door_model",          SP_func_door_model }, //TA
   { "func_static",              SP_func_static },
   { "func_rotating",            SP_func_rotating },
   { "func_bobbing",             SP_func_bobbing },
@@ -324,8 +325,7 @@ qboolean G_CallSpawn( gentity_t *ent )
   }
 
   //check buildable spawn functions
-  buildable = BG_BuildableByEntityName( ent->classname )->number;
-  if( buildable != BA_NONE )
+  if( ( buildable = BG_FindBuildNumForEntityName( ent->classname ) ) != BA_NONE )
   {
     // don't spawn built-in buildings if we are using a custom layout
     if( level.layout[ 0 ] && Q_stricmp( level.layout, "*BUILTIN*" ) )
@@ -371,7 +371,7 @@ char *G_NewString( const char *string )
 
   l = strlen( string ) + 1;
 
-  newb = BG_Alloc( l );
+  newb = G_Alloc( l );
 
   new_p = newb;
 
@@ -662,20 +662,8 @@ void SP_worldspawn( void )
   g_entities[ ENTITYNUM_WORLD ].s.number = ENTITYNUM_WORLD;
   g_entities[ ENTITYNUM_WORLD ].classname = "worldspawn";
 
-  // see if we want a warmup time
-  trap_SetConfigstring( CS_WARMUP, "" );
   if( g_restarted.integer )
-  {
     trap_Cvar_Set( "g_restarted", "0" );
-    level.warmupTime = 0;
-  }
-  else if( g_doWarmup.integer )
-  {
-    // Turn it on
-    level.warmupTime = -1;
-    trap_SetConfigstring( CS_WARMUP, va( "%i", level.warmupTime ) );
-    G_LogPrintf( "Warmup:\n" );
-  }
 
 }
 

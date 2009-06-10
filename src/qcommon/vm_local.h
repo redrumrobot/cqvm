@@ -157,10 +157,11 @@ struct vm_s {
 	int			numSymbols;
 	struct vmSymbol_s	*symbols;
 
-	int			callLevel;		// counts recursive VM_Call
+	int			callLevel;			// for debug indenting
 	int			breakFunction;		// increment breakCount on function entry to this
 	int			breakCount;
 
+// fqpath member added 7/20/02 by T.Ray
 	char		fqpath[MAX_QPATH+1] ;
 
 	byte		*jumpTableTargets;

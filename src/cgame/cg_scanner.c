@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "cg_local.h"
 
-static entityPos_t entityPositions;
+static entityPos_t   entityPositions;
 
 #define HUMAN_SCANNER_UPDATE_PERIOD 700
 
@@ -39,7 +39,7 @@ void CG_UpdateEntityPositions( void )
   centity_t *cent = NULL;
   int       i;
 
-  if( cg.predictedPlayerState.stats[ STAT_TEAM ] == TEAM_HUMANS )
+  if( cg.predictedPlayerState.stats[ STAT_PTEAM ] == PTE_HUMANS )
   {
     if( entityPositions.lastUpdateTime + HUMAN_SCANNER_UPDATE_PERIOD > cg.time )
       return;
@@ -60,8 +60,8 @@ void CG_UpdateEntityPositions( void )
 
     if( cent->currentState.eType == ET_BUILDABLE )
     {
-      // add to list of item positions (for creep)
-      if( cent->currentState.modelindex2 == TEAM_ALIENS )
+      //TA: add to list of item positions (for creep)
+      if( cent->currentState.modelindex2 == BIT_ALIENS )
       {
         VectorCopy( cent->lerpOrigin, entityPositions.alienBuildablePos[
             entityPositions.numAlienBuildables ] );
@@ -71,7 +71,7 @@ void CG_UpdateEntityPositions( void )
         if( entityPositions.numAlienBuildables < MAX_GENTITIES )
           entityPositions.numAlienBuildables++;
       }
-      else if( cent->currentState.modelindex2 == TEAM_HUMANS )
+      else if( cent->currentState.modelindex2 == BIT_HUMANS )
       {
         VectorCopy( cent->lerpOrigin, entityPositions.humanBuildablePos[
             entityPositions.numHumanBuildables ] );
@@ -82,9 +82,9 @@ void CG_UpdateEntityPositions( void )
     }
     else if( cent->currentState.eType == ET_PLAYER )
     {
-      int team = cent->currentState.misc & 0x00FF;
+      int team = cent->currentState.powerups & 0x00FF;
 
-      if( team == TEAM_ALIENS )
+      if( team == PTE_ALIENS )
       {
         VectorCopy( cent->lerpOrigin, entityPositions.alienClientPos[
             entityPositions.numAlienClients ] );
@@ -92,7 +92,7 @@ void CG_UpdateEntityPositions( void )
         if( entityPositions.numAlienClients < MAX_CLIENTS )
           entityPositions.numAlienClients++;
       }
-      else if( team == TEAM_HUMANS )
+      else if( team == PTE_HUMANS )
       {
         VectorCopy( cent->lerpOrigin, entityPositions.humanClientPos[
             entityPositions.numHumanClients ] );
@@ -104,8 +104,8 @@ void CG_UpdateEntityPositions( void )
   }
 }
 
-#define STALKWIDTH  (2.0f * cgDC.aspectScale)
-#define BLIPX       (16.0f * cgDC.aspectScale)
+#define STALKWIDTH  2.0f
+#define BLIPX       16.0f
 #define BLIPY       8.0f
 #define FAR_ALPHA   0.8f
 #define NEAR_ALPHA  1.2f
@@ -162,7 +162,7 @@ static void CG_DrawBlips( rectDef_t *rect, vec3_t origin, vec4_t colour )
   trap_R_SetColor( NULL );
 }
 
-#define BLIPX2  (24.0f * cgDC.aspectScale)
+#define BLIPX2  24.0f
 #define BLIPY2  24.0f
 
 /*
@@ -183,7 +183,15 @@ static void CG_DrawDir( rectDef_t *rect, vec3_t origin, vec4_t colour )
   float   angle;
   playerState_t *ps = &cg.snap->ps;
 
-  BG_GetClientNormal( ps, normal );
+  if( ps->stats[ STAT_STATE ] & SS_WALLCLIMBING )
+  {
+    if( ps->stats[ STAT_STATE ] & SS_WALLCLIMBINGCEILING )
+      VectorSet( normal, 0.0f, 0.0f, -1.0f );
+    else
+      VectorCopy( ps->grapplePoint, normal );
+  }
+  else
+    VectorSet( normal, 0.0f, 0.0f, 1.0f );
 
   AngleVectors( entityPositions.vangles, view, NULL, NULL );
 

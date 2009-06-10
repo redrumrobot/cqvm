@@ -278,7 +278,15 @@ static void CG_OffsetThirdPersonView( void )
   float         forwardScale, sideScale;
   vec3_t        surfNormal;
 
-  BG_GetClientNormal( &cg.predictedPlayerState, surfNormal );
+  if( cg.predictedPlayerState.stats[ STAT_STATE ] & SS_WALLCLIMBING )
+  {
+    if( cg.predictedPlayerState.stats[ STAT_STATE ] & SS_WALLCLIMBINGCEILING )
+      VectorSet( surfNormal, 0.0f, 0.0f, -1.0f );
+    else
+      VectorCopy( cg.predictedPlayerState.grapplePoint, surfNormal );
+  }
+  else
+    VectorSet( surfNormal, 0.0f, 0.0f, 1.0f );
 
   VectorMA( cg.refdef.vieworg, cg.predictedPlayerState.viewheight, surfNormal, cg.refdef.vieworg );
 
@@ -347,13 +355,21 @@ static void CG_OffsetThirdPersonView( void )
 static void CG_StepOffset( void )
 {
   float         steptime;
-  int           timeDelta;
+  int            timeDelta;
   vec3_t        normal;
   playerState_t *ps = &cg.predictedPlayerState;
 
-  BG_GetClientNormal( ps, normal );
+  if( ps->stats[ STAT_STATE ] & SS_WALLCLIMBING )
+  {
+    if( ps->stats[ STAT_STATE ] & SS_WALLCLIMBINGCEILING )
+      VectorSet( normal, 0.0f, 0.0f, -1.0f );
+    else
+      VectorCopy( ps->grapplePoint, normal );
+  }
+  else
+    VectorSet( normal, 0.0f, 0.0f, 1.0f );
 
-  steptime = BG_Class( ps->stats[ STAT_CLASS ] )->steptime;
+  steptime = BG_FindSteptimeForClass( ps->stats[ STAT_PCLASS ] );
 
   // smooth out stair climbing
   timeDelta = cg.time - cg.stepTime;
@@ -362,7 +378,10 @@ static void CG_StepOffset( void )
     float stepChange = cg.stepChange
       * (steptime - timeDelta) / steptime;
 
-    VectorMA( cg.refdef.vieworg, -stepChange, normal, cg.refdef.vieworg );
+    if( ps->stats[ STAT_STATE ] & SS_WALLCLIMBING )
+      VectorMA( cg.refdef.vieworg, -stepChange, normal, cg.refdef.vieworg );
+    else
+      cg.refdef.vieworg[ 2 ] -= stepChange;
   }
 }
 
@@ -393,7 +412,16 @@ static void CG_OffsetFirstPersonView( void )
   vec3_t        normal, baseOrigin;
   playerState_t *ps = &cg.predictedPlayerState;
 
-  BG_GetClientNormal( ps, normal );
+  if( ps->stats[ STAT_STATE ] & SS_WALLCLIMBING )
+  {
+    if( ps->stats[ STAT_STATE ] & SS_WALLCLIMBINGCEILING )
+      VectorSet( normal, 0.0f, 0.0f, -1.0f );
+    else
+      VectorCopy( ps->grapplePoint, normal );
+  }
+  else
+    VectorSet( normal, 0.0f, 0.0f, 1.0f );
+
 
   if( cg.snap->ps.pm_type == PM_INTERMISSION )
     return;
@@ -457,10 +485,10 @@ static void CG_OffsetFirstPersonView( void )
   // add angles based on bob
   // bob amount is class dependant
 
-  if( cg.snap->ps.persistant[ PERS_SPECSTATE ] != SPECTATOR_NOT )
+  if( cg.snap->ps.persistant[ PERS_TEAM ] == TEAM_SPECTATOR )
     bob2 = 0.0f;
   else
-    bob2 = BG_Class( cg.predictedPlayerState.stats[ STAT_CLASS ] )->bob;
+    bob2 = BG_FindBobForClass( cg.predictedPlayerState.stats[ STAT_PCLASS ] );
 
 
 #define LEVEL4_FEEDBACK  10.0f
@@ -593,7 +621,7 @@ static void CG_OffsetFirstPersonView( void )
   }
 
   // this *feels* more realisitic for humans
-  if( cg.predictedPlayerState.stats[ STAT_TEAM ] == TEAM_HUMANS )
+  if( cg.predictedPlayerState.stats[ STAT_PTEAM ] == PTE_HUMANS )
   {
     angles[PITCH] += cg.bobfracsin * bob2 * 0.5;
 
@@ -615,7 +643,11 @@ static void CG_OffsetFirstPersonView( void )
 //===================================
 
   // add view height
-  VectorMA( origin, ps->viewheight, normal, origin );
+  // when wall climbing the viewheight is not straight up
+  if( cg.predictedPlayerState.stats[ STAT_STATE ] & SS_WALLCLIMBING )
+    VectorMA( origin, ps->viewheight, normal, origin );
+  else
+    origin[ 2 ] += cg.predictedPlayerState.viewheight;
 
   // smooth out duck height changes
   timeDelta = cg.time - cg.duckTime;
@@ -631,7 +663,12 @@ static void CG_OffsetFirstPersonView( void )
   if( bob > 6 )
     bob = 6;
 
-  VectorMA( origin, bob, normal, origin );
+  // likewise for bob
+  if( cg.predictedPlayerState.stats[ STAT_STATE ] & SS_WALLCLIMBING )
+    VectorMA( origin, bob, normal, origin );
+  else
+    origin[ 2 ] += bob;
+
 
   // add fall height
   delta = cg.time - cg.landTime;
@@ -688,7 +725,7 @@ static int CG_CalcFov( void )
   trap_GetUserCmd( cmdNum, &cmd );
 
   if( cg.predictedPlayerState.pm_type == PM_INTERMISSION ||
-      ( cg.snap->ps.persistant[ PERS_SPECSTATE ] != SPECTATOR_NOT ) )
+      ( cg.snap->ps.persistant[ PERS_TEAM ] == TEAM_SPECTATOR ) )
   {
     // if in intermission, use a fixed value
     fov_x = 90;
@@ -696,7 +733,7 @@ static int CG_CalcFov( void )
   else
   {
     // don't lock the fov globally - we need to be able to change it
-    attribFov = BG_Class( cg.predictedPlayerState.stats[ STAT_CLASS ] )->fov;
+    attribFov = BG_FindFovForClass( cg.predictedPlayerState.stats[ STAT_PCLASS ] );
     fov_x = attribFov;
 
     if ( fov_x < 1 )
@@ -705,7 +742,7 @@ static int CG_CalcFov( void )
       fov_x = 160;
 
     if( cg.spawnTime > ( cg.time - FOVWARPTIME ) &&
-        BG_ClassHasAbility( cg.predictedPlayerState.stats[ STAT_CLASS ], SCA_FOVWARPS ) )
+        BG_ClassHasAbility( cg.predictedPlayerState.stats[ STAT_PCLASS ], SCA_FOVWARPS ) )
     {
       float temp, temp2;
 
@@ -718,7 +755,7 @@ static int CG_CalcFov( void )
     }
 
     // account for zooms
-    zoomFov = BG_Weapon( cg.predictedPlayerState.weapon )->zoomFov;
+    zoomFov = BG_FindZoomFovForWeapon( cg.predictedPlayerState.weapon );
     if ( zoomFov < 1 )
       zoomFov = 1;
     else if ( zoomFov > attribFov )
@@ -726,7 +763,7 @@ static int CG_CalcFov( void )
 
     // only do all the zoom stuff if the client CAN zoom
     // FIXME: zoom control is currently hard coded to BUTTON_ATTACK2
-    if( BG_Weapon( cg.predictedPlayerState.weapon )->canZoom )
+    if( BG_WeaponCanZoom( cg.predictedPlayerState.weapon ) )
     {
       if ( cg.zoomed )
       {
@@ -906,7 +943,10 @@ static void CG_smoothWWTransitions( playerState_t *ps, const vec3_t in, vec3_t o
   }
 
   //set surfNormal
-  BG_GetClientNormal( ps, surfNormal );
+  if( !( ps->stats[ STAT_STATE ] & SS_WALLCLIMBINGCEILING ) )
+    VectorCopy( ps->grapplePoint, surfNormal );
+  else
+    VectorCopy( ceilingNormal, surfNormal );
 
   AnglesToAxis( in, inAxis );
 
@@ -1069,16 +1109,16 @@ static int CG_CalcViewValues( void )
 
   VectorCopy( ps->origin, cg.refdef.vieworg );
 
-  if( BG_ClassHasAbility( ps->stats[ STAT_CLASS ], SCA_WALLCLIMBER ) )
+  if( BG_ClassHasAbility( ps->stats[ STAT_PCLASS ], SCA_WALLCLIMBER ) )
     CG_smoothWWTransitions( ps, ps->viewangles, cg.refdefViewAngles );
-  else if( BG_ClassHasAbility( ps->stats[ STAT_CLASS ], SCA_WALLJUMPER ) )
+  else if( BG_ClassHasAbility( ps->stats[ STAT_PCLASS ], SCA_WALLJUMPER ) )
     CG_smoothWJTransitions( ps, ps->viewangles, cg.refdefViewAngles );
   else
     VectorCopy( ps->viewangles, cg.refdefViewAngles );
 
   //clumsy logic, but it needs to be this way round because the CS propogation
   //delay screws things up otherwise
-  if( !BG_ClassHasAbility( ps->stats[ STAT_CLASS ], SCA_WALLJUMPER ) )
+  if( !BG_ClassHasAbility( ps->stats[ STAT_PCLASS ], SCA_WALLJUMPER ) )
   {
     if( !( ps->stats[ STAT_STATE ] & SS_WALLCLIMBING ) )
       VectorSet( cg.lastNormal, 0.0f, 0.0f, 1.0f );
@@ -1223,12 +1263,6 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 
   // decide on third person view
   cg.renderingThirdPerson = cg_thirdPerson.integer || ( cg.snap->ps.stats[ STAT_HEALTH ] <= 0 );
-
-  // Infer when we first became boosted
-  if( ( cg.snap->ps.stats[ STAT_STATE ] & SS_BOOSTED ) && cg.boostedTime < 0 )
-    cg.boostedTime = cg.time;
-  else if( !( cg.snap->ps.stats[ STAT_STATE ] & SS_BOOSTED ) && cg.boostedTime >= 0 )
-    cg.boostedTime = -1;
 
   // build cg.refdef
   inwater = CG_CalcViewValues( );

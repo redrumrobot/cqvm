@@ -138,7 +138,7 @@ static void CG_ClipMoveToEntities ( const vec3_t start, const vec3_t mins,
       bmaxs[ 2 ] = zu;
 
       if( i == cg_numSolidEntities )
-        BG_ClassBoundingBox( ( ent->misc >> 8 ) & 0xFF, bmins, bmaxs, NULL, NULL, NULL );
+        BG_FindBBoxForClass( ( ent->powerups >> 8 ) & 0xFF, bmins, bmaxs, NULL, NULL, NULL );
 
       cmodel = trap_CM_TempBoxModel( bmins, bmaxs );
       VectorCopy( vec3_origin, angles );
@@ -176,10 +176,7 @@ static void CG_ClipMoveToEntities ( const vec3_t start, const vec3_t mins,
         *tr = trace;
     }
     else if( trace.startsolid )
-    {
       tr->startsolid = qtrue;
-      tr->entityNum = ent->number;
-    }
 
     if( tr->allsolid )
       return;
@@ -479,13 +476,13 @@ static int CG_IsUnacceptableError( playerState_t *ps, playerState_t *pps )
 
   if( fabs( AngleDelta( ps->viewangles[ 0 ], pps->viewangles[ 0 ] ) ) > 1.0f ||
     fabs( AngleDelta( ps->viewangles[ 1 ], pps->viewangles[ 1 ] ) ) > 1.0f ||
-    fabs( AngleDelta( ps->viewangles[ 2 ], pps->viewangles[ 2 ] ) ) > 1.0f )
+    fabs( AngleDelta( ps->viewangles[ 2 ], pps->viewangles[ 2 ] ) ) > 1.0f ) 
   {
     return 12;
   }
 
   if( pps->viewheight != ps->viewheight )
-    return 13;
+  	return 13;
 
   if( pps->damageEvent != ps->damageEvent ||
     pps->damageYaw != ps->damageYaw ||
@@ -505,6 +502,12 @@ static int CG_IsUnacceptableError( playerState_t *ps, playerState_t *pps )
   {
     if( pps->persistant[ i ] != ps->persistant[ i ] )
       return 16;
+  }
+
+  for( i = 0; i < MAX_WEAPONS; i++ )
+  {
+    if( pps->ammo[ i ] != ps->ammo[ i ] )
+      return 18;
   }
 
   if( pps->generic1 != ps->generic1 ||
@@ -586,12 +589,12 @@ void CG_PredictPlayerState( void )
   cg_pmove.debugLevel = cg_debugMove.integer;
 
   if( cg_pmove.ps->pm_type == PM_DEAD )
-    cg_pmove.tracemask = MASK_DEADSOLID;
+    cg_pmove.tracemask = MASK_PLAYERSOLID & ~CONTENTS_BODY;
   else
     cg_pmove.tracemask = MASK_PLAYERSOLID;
 
-  if( cg.snap->ps.persistant[ PERS_SPECSTATE ] != SPECTATOR_NOT )
-    cg_pmove.tracemask = MASK_DEADSOLID; // spectators can fly through bodies
+  if( cg.snap->ps.persistant[ PERS_TEAM ] == TEAM_SPECTATOR )
+    cg_pmove.tracemask &= ~CONTENTS_BODY; // spectators can fly through bodies
 
   cg_pmove.noFootsteps = 0;
 
@@ -696,22 +699,22 @@ void CG_PredictPlayerState( void )
         // make sure the state differences are acceptable
         errorcode = CG_IsUnacceptableError( &cg.predictedPlayerState,
           &cg.savedPmoveStates[ i ] );
-
+  
         if( errorcode )
         {
           if( cg_showmiss.integer )
             CG_Printf("errorcode %d at %d\n", errorcode, cg.time);
           break;
         }
-
+  
         // this one is almost exact, so we'll copy it in as the starting point
         *cg_pmove.ps = cg.savedPmoveStates[ i ];
         // advance the head
         cg.stateHead = ( i + 1 ) % NUM_SAVED_STATES;
-
+  
         // set the next command to predict
         predictCmd = cg.lastPredictedCommand + 1;
-
+  
         // a saved state matched, so flag it
         error = qfalse;
         break;

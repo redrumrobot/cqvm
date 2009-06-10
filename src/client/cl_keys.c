@@ -35,6 +35,10 @@ int			historyLine;	// the line being displayed from history buffer
 							// will be <= nextHistoryLine
 
 field_t		g_consoleField;
+field_t		chatField;
+qboolean	chat_team;
+
+int			chat_playerNum;
 
 
 qboolean	key_overstrikeMode;
@@ -303,11 +307,10 @@ EDIT FIELDS
 Field_Draw
 
 Handles horizontal scrolling and cursor blinking
-x, y, and width are in pixels
+x, y, amd width are in pixels
 ===================
 */
-void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, qboolean showCursor,
-		qboolean noColorEscape ) {
+void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, qboolean showCursor ) {
 	int		len;
 	int		drawLen;
 	int		prestep;
@@ -315,8 +318,8 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, q
 	char	str[MAX_STRING_CHARS];
 	int		i;
 
-	drawLen = edit->widthInChars - 1; // - 1 so there is always a space for the cursor
-	len = strlen( edit->buffer );
+	drawLen = edit->widthInChars;
+	len = strlen( edit->buffer ) + 1;
 
 	// guarantee that cursor will be visible
 	if ( len <= drawLen ) {
@@ -329,6 +332,14 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, q
 			}
 		}
 		prestep = edit->scroll;
+
+/*
+		if ( edit->cursor < len - drawLen ) {
+			prestep = edit->cursor;	// cursor at start
+		} else {
+			prestep = len - drawLen;
+		}
+*/
 	}
 
 	if ( prestep + drawLen > len ) {
@@ -348,45 +359,47 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, q
 		float	color[4];
 
 		color[0] = color[1] = color[2] = color[3] = 1.0;
-		SCR_DrawSmallStringExt( x, y, str, color, qfalse, noColorEscape );
+		SCR_DrawSmallStringExt( x, y, str, color, qfalse );
 	} else {
 		// draw big string with drop shadow
-		SCR_DrawBigString( x, y, str, 1.0, noColorEscape );
+		SCR_DrawBigString( x, y, str, 1.0 );
 	}
 
 	// draw the cursor
-	if ( showCursor ) {
-		if ( (int)( cls.realtime >> 8 ) & 1 ) {
-			return;		// off blink
-		}
+	if ( !showCursor ) {
+		return;
+	}
 
-		if ( key_overstrikeMode ) {
-			cursorChar = 11;
-		} else {
-			cursorChar = 10;
-		}
+	if ( (int)( cls.realtime >> 8 ) & 1 ) {
+		return;		// off blink
+	}
 
-		i = drawLen - strlen( str );
+	if ( key_overstrikeMode ) {
+		cursorChar = 11;
+	} else {
+		cursorChar = 10;
+	}
 
-		if ( size == SMALLCHAR_WIDTH ) {
-			SCR_DrawSmallChar( x + ( edit->cursor - prestep - i ) * size, y, cursorChar );
-		} else {
-			str[0] = cursorChar;
-			str[1] = 0;
-			SCR_DrawBigString( x + ( edit->cursor - prestep - i ) * size, y, str, 1.0, qfalse );
+	i = drawLen - ( Q_PrintStrlen( str ) + 1 );
 
-		}
+	if ( size == SMALLCHAR_WIDTH ) {
+		SCR_DrawSmallChar( x + ( edit->cursor - prestep - i ) * size, y, cursorChar );
+	} else {
+		str[0] = cursorChar;
+		str[1] = 0;
+		SCR_DrawBigString( x + ( edit->cursor - prestep - i ) * size, y, str, 1.0 );
+
 	}
 }
 
-void Field_Draw( field_t *edit, int x, int y, int width, qboolean showCursor, qboolean noColorEscape ) 
+void Field_Draw( field_t *edit, int x, int y, int width, qboolean showCursor ) 
 {
-	Field_VariableSizeDraw( edit, x, y, width, SMALLCHAR_WIDTH, showCursor, noColorEscape );
+	Field_VariableSizeDraw( edit, x, y, width, SMALLCHAR_WIDTH, showCursor );
 }
 
-void Field_BigDraw( field_t *edit, int x, int y, int width, qboolean showCursor, qboolean noColorEscape ) 
+void Field_BigDraw( field_t *edit, int x, int y, int width, qboolean showCursor ) 
 {
-	Field_VariableSizeDraw( edit, x, y, width, BIGCHAR_WIDTH, showCursor, noColorEscape );
+	Field_VariableSizeDraw( edit, x, y, width, BIGCHAR_WIDTH, showCursor );
 }
 
 /*
@@ -432,50 +445,54 @@ void Field_KeyDownEvent( field_t *edit, int key ) {
 		return;
 	}
 
-	key = tolower( key );
 	len = strlen( edit->buffer );
 
-	switch ( key ) {
-		case K_DEL:
-			if ( edit->cursor < len ) {
-				memmove( edit->buffer + edit->cursor, 
-					edit->buffer + edit->cursor + 1, len - edit->cursor );
-			}
-			break;
-
-		case K_RIGHTARROW:
-			if ( edit->cursor < len ) {
-				edit->cursor++;
-			}
-			break;
-
-		case K_LEFTARROW:
-			if ( edit->cursor > 0 ) {
-				edit->cursor--;
-			}
-			break;
-
-		case K_HOME:
-			edit->cursor = 0;
-			break;
-
-		case K_END:
-			edit->cursor = len;
-			break;
-
-		case K_INS:
-			key_overstrikeMode = !key_overstrikeMode;
-			break;
-
-		default:
-			break;
+	if ( key == K_DEL ) {
+		if ( edit->cursor < len ) {
+			memmove( edit->buffer + edit->cursor, 
+				edit->buffer + edit->cursor + 1, len - edit->cursor );
+		}
+		return;
 	}
 
-	// Change scroll if cursor is no longer visible
-	if ( edit->cursor < edit->scroll ) {
-		edit->scroll = edit->cursor;
-	} else if ( edit->cursor >= edit->scroll + edit->widthInChars && edit->cursor <= len ) {
-		edit->scroll = edit->cursor - edit->widthInChars + 1;
+	if ( key == K_RIGHTARROW ) 
+	{
+		if ( edit->cursor < len ) {
+			edit->cursor++;
+		}
+
+		if ( edit->cursor >= edit->scroll + edit->widthInChars && edit->cursor <= len )
+		{
+			edit->scroll++;
+		}
+		return;
+	}
+
+	if ( key == K_LEFTARROW ) 
+	{
+		if ( edit->cursor > 0 ) {
+			edit->cursor--;
+		}
+		if ( edit->cursor < edit->scroll )
+		{
+			edit->scroll--;
+		}
+		return;
+	}
+
+	if ( key == K_HOME || ( tolower(key) == 'a' && keys[K_CTRL].down ) ) {
+		edit->cursor = 0;
+		return;
+	}
+
+	if ( key == K_END || ( tolower(key) == 'e' && keys[K_CTRL].down ) ) {
+		edit->cursor = len;
+		return;
+	}
+
+	if ( key == K_INS ) {
+		key_overstrikeMode = !key_overstrikeMode;
+		return;
 	}
 }
 
@@ -701,6 +718,51 @@ void Console_Key (int key) {
 	Field_KeyDownEvent( &g_consoleField, key );
 }
 
+//============================================================================
+
+
+/*
+================
+Message_Key
+
+In game talk message
+================
+*/
+void Message_Key( int key ) {
+
+	char	buffer[MAX_STRING_CHARS];
+
+
+	if (key == K_ESCAPE) {
+		cls.keyCatchers &= ~KEYCATCH_MESSAGE;
+		Field_Clear( &chatField );
+		return;
+	}
+
+	if ( key == K_ENTER || key == K_KP_ENTER )
+	{
+		if ( chatField.buffer[0] && cls.state == CA_ACTIVE ) {
+			if (chat_playerNum != -1 )
+
+				Com_sprintf( buffer, sizeof( buffer ), "tell %i \"%s\"\n", chat_playerNum, chatField.buffer );
+
+			else if (chat_team)
+
+				Com_sprintf( buffer, sizeof( buffer ), "say_team \"%s\"\n", chatField.buffer );
+			else
+				Com_sprintf( buffer, sizeof( buffer ), "say \"%s\"\n", chatField.buffer );
+
+
+
+			CL_AddReliableCommand( buffer );
+		}
+		cls.keyCatchers &= ~KEYCATCH_MESSAGE;
+		Field_Clear( &chatField );
+		return;
+	}
+
+	Field_KeyDownEvent( &chatField, key );
+}
 
 //============================================================================
 
@@ -728,6 +790,7 @@ qboolean Key_IsDown( int keynum ) {
 	return keys[keynum].down;
 }
 
+
 /*
 ===================
 Key_StringToKeynum
@@ -752,12 +815,28 @@ int Key_StringToKeynum( char *str ) {
 	}
 
 	// check for hex code
-	if ( strlen( str ) == 4 ) {
-		int n = Com_HexStrToInt( str );
-
-		if ( n >= 0 ) {
-			return n;
+	if ( str[0] == '0' && str[1] == 'x' && strlen( str ) == 4) {
+		int		n1, n2;
+		
+		n1 = str[2];
+		if ( n1 >= '0' && n1 <= '9' ) {
+			n1 -= '0';
+		} else if ( n1 >= 'a' && n1 <= 'f' ) {
+			n1 = n1 - 'a' + 10;
+		} else {
+			n1 = 0;
 		}
+
+		n2 = str[3];
+		if ( n2 >= '0' && n2 <= '9' ) {
+			n2 -= '0';
+		} else if ( n2 >= 'a' && n2 <= 'f' ) {
+			n2 = n2 - 'a' + 10;
+		} else {
+			n2 = 0;
+		}
+
+		return n1 * 16 + n2;
 	}
 
 	// scan for a text match
@@ -998,62 +1077,6 @@ void Key_Bindlist_f( void ) {
 }
 
 /*
-============
-Key_KeynameCompletion
-============
-*/
-void Key_KeynameCompletion( void(*callback)(const char *s) ) {
-	int		i;
-
-	for( i = 0; keynames[ i ].name != NULL; i++ )
-		callback( keynames[ i ].name );
-}
-
-/*
-====================
-Key_CompleteUnbind
-====================
-*/
-static void Key_CompleteUnbind( char *args, int argNum )
-{
-	if( argNum == 2 )
-	{
-		// Skip "unbind "
-		char *p = Com_SkipTokens( args, 1, " " );
-
-		if( p > args )
-			Field_CompleteKeyname( );
-	}
-}
-
-/*
-====================
-Key_CompleteBind
-====================
-*/
-static void Key_CompleteBind( char *args, int argNum )
-{
-	char *p;
-
-	if( argNum == 2 )
-	{
-		// Skip "bind "
-		p = Com_SkipTokens( args, 1, " " );
-
-		if( p > args )
-			Field_CompleteKeyname( );
-	}
-	else if( argNum >= 3 )
-	{
-		// Skip "bind <key> "
-		p = Com_SkipTokens( args, 2, " " );
-
-		if( p > args )
-			Field_CompleteCommand( p, qtrue, qtrue );
-	}
-}
-
-/*
 ===================
 CL_InitKeyCommands
 ===================
@@ -1061,9 +1084,7 @@ CL_InitKeyCommands
 void CL_InitKeyCommands( void ) {
 	// register our functions
 	Cmd_AddCommand ("bind",Key_Bind_f);
-	Cmd_SetCommandCompletionFunc( "bind", Key_CompleteBind );
 	Cmd_AddCommand ("unbind",Key_Unbind_f);
-	Cmd_SetCommandCompletionFunc( "unbind", Key_CompleteUnbind );
 	Cmd_AddCommand ("unbindall",Key_Unbindall_f);
 	Cmd_AddCommand ("bindlist",Key_Bindlist_f);
 }
@@ -1139,21 +1160,27 @@ void CL_KeyEvent (int key, qboolean down, unsigned time) {
 		}
 	}
 
+#ifndef _WIN32
 	if (key == K_ENTER)
 	{
 		if (down)
 		{
 			if (keys[K_ALT].down)
 			{
+				Key_ClearStates();
 				Cvar_SetValue( "r_fullscreen",
 						!Cvar_VariableIntegerValue( "r_fullscreen" ) );
+#if !USE_SDL_VIDEO // This is handled in sdl_glimp.c/GLimp_EndFrame
+				Cbuf_ExecuteText( EXEC_APPEND, "vid_restart\n");
+#endif
 				return;
 			}
 		}
 	}
+#endif
 
 	// console key is hardcoded, so the user can never unbind it
-	if (key == K_CONSOLE ||
+	if (key == '`' || key == '~' ||
 		( key == K_ESCAPE && keys[K_SHIFT].down ) ) {
 		if (!down) {
 			return;
@@ -1165,8 +1192,7 @@ void CL_KeyEvent (int key, qboolean down, unsigned time) {
 
 
 	// keys can still be used for bound actions
-	if ( down && ( key < 128 || key == K_MOUSE1 ) &&
-		( clc.demoplaying || cls.state == CA_CINEMATIC ) && Key_GetCatcher( ) == 0 ) {
+	if ( down && ( key < 128 || key == K_MOUSE1 ) && ( clc.demoplaying || cls.state == CA_CINEMATIC ) && !cls.keyCatchers) {
 
 		if (Cvar_VariableValue ("com_cameraMode") == 0) {
 			Cvar_Set ("nextdemo","");
@@ -1177,18 +1203,24 @@ void CL_KeyEvent (int key, qboolean down, unsigned time) {
 
 	// escape is always handled special
 	if ( key == K_ESCAPE && down ) {
+		if ( cls.keyCatchers & KEYCATCH_MESSAGE ) {
+			// clear message mode
+			Message_Key( key );
+			return;
+		}
+
 		// escape always gets out of CGAME stuff
-		if (Key_GetCatcher( ) & KEYCATCH_CGAME) {
-			Key_SetCatcher( Key_GetCatcher( ) & ~KEYCATCH_CGAME );
+		if (cls.keyCatchers & KEYCATCH_CGAME) {
+			cls.keyCatchers &= ~KEYCATCH_CGAME;
 			VM_Call (cgvm, CG_EVENT_HANDLING, CGAME_EVENT_NONE);
 			return;
 		}
 
-		if ( !( Key_GetCatcher( ) & KEYCATCH_UI ) ) {
+		if ( !( cls.keyCatchers & KEYCATCH_UI ) ) {
 			if ( cls.state == CA_ACTIVE && !clc.demoplaying ) {
 				VM_Call( uivm, UI_SET_ACTIVE_MENU, UIMENU_INGAME );
 			}
-			else if ( cls.state != CA_DISCONNECTED ) {
+			else {
 				CL_Disconnect_f();
 				S_StopAllSounds();
 				VM_Call( uivm, UI_SET_ACTIVE_MENU, UIMENU_MAIN );
@@ -1203,37 +1235,37 @@ void CL_KeyEvent (int key, qboolean down, unsigned time) {
 	//
 	// key up events only perform actions if the game key binding is
 	// a button command (leading + sign).  These will be processed even in
-	// console mode and menu mode, to keep the character from continuing
+	// console mode and menu mode, to keep the character from continuing 
 	// an action started before a mode switch.
 	//
-	if (!down ) {
-		if ( cls.state != CA_DISCONNECTED ) {
-			kb = keys[key].binding;
+	if (!down) {
+		kb = keys[key].binding;
 
-			CL_AddKeyUpCommands( key, kb, time );
-		}
+		CL_AddKeyUpCommands( key, kb, time );
 
-		if ( Key_GetCatcher( ) & KEYCATCH_UI && uivm ) {
+		if ( cls.keyCatchers & KEYCATCH_UI && uivm ) {
 			VM_Call( uivm, UI_KEY_EVENT, key, down );
-		} else if ( Key_GetCatcher( ) & KEYCATCH_CGAME && cgvm ) {
+		} else if ( cls.keyCatchers & KEYCATCH_CGAME && cgvm ) {
 			VM_Call( cgvm, CG_KEY_EVENT, key, down );
-		}
+		} 
 
 		return;
 	}
 
 
 	// distribute the key down event to the apropriate handler
-	if ( Key_GetCatcher( ) & KEYCATCH_CONSOLE ) {
+	if ( cls.keyCatchers & KEYCATCH_CONSOLE ) {
 		Console_Key( key );
-	} else if ( Key_GetCatcher( ) & KEYCATCH_UI ) {
+	} else if ( cls.keyCatchers & KEYCATCH_UI ) {
 		if ( uivm ) {
 			VM_Call( uivm, UI_KEY_EVENT, key, down );
 		} 
-	} else if ( Key_GetCatcher( ) & KEYCATCH_CGAME ) {
+	} else if ( cls.keyCatchers & KEYCATCH_CGAME ) {
 		if ( cgvm ) {
 			VM_Call( cgvm, CG_KEY_EVENT, key, down );
 		} 
+	} else if ( cls.keyCatchers & KEYCATCH_MESSAGE ) {
+		Message_Key( key );
 	} else if ( cls.state == CA_DISCONNECTED ) {
 		Console_Key( key );
 	} else {
@@ -1244,7 +1276,7 @@ void CL_KeyEvent (int key, qboolean down, unsigned time) {
 				Com_Printf ("%s is unbound, use controls menu to set.\n"
 					, Key_KeynumToString( key ) );
 			}
-		} else if (kb[0] == '+') {
+		} else if (kb[0] == '+') {	
 			int i;
 			char button[1024], *buttonPtr;
 			buttonPtr = button;
@@ -1288,6 +1320,11 @@ Normal keyboard characters, already shifted / capslocked / etc
 ===================
 */
 void CL_CharEvent( int key ) {
+	// the console key should never be used as a char
+	if ( key == '`' || key == '~' ) {
+		return;
+	}
+
 	// delete is not a printable character and is
 	// otherwise handled by Field_KeyDownEvent
 	if ( key == 127 ) {
@@ -1295,13 +1332,17 @@ void CL_CharEvent( int key ) {
 	}
 
 	// distribute the key down event to the apropriate handler
-	if ( Key_GetCatcher( ) & KEYCATCH_CONSOLE )
+	if ( cls.keyCatchers & KEYCATCH_CONSOLE )
 	{
 		Field_CharEvent( &g_consoleField, key );
 	}
-	else if ( Key_GetCatcher( ) & KEYCATCH_UI )
+	else if ( cls.keyCatchers & KEYCATCH_UI )
 	{
 		VM_Call( uivm, UI_KEY_EVENT, key | K_CHAR_FLAG, qtrue );
+	}
+	else if ( cls.keyCatchers & KEYCATCH_MESSAGE ) 
+	{
+		Field_CharEvent( &chatField, key );
 	}
 	else if ( cls.state == CA_DISCONNECTED )
 	{
@@ -1357,28 +1398,22 @@ void Key_GetBindingBuf( int keynum, char *buf, int buflen ) {
 	}
 }
 
-static int keyCatchers = 0;
-
 /*
 ====================
 Key_GetCatcher
 ====================
 */
 int Key_GetCatcher( void ) {
-	return keyCatchers;
+	return cls.keyCatchers;
 }
 
 /*
 ====================
-Key_SetCatcher
+Ket_SetCatcher
 ====================
 */
 void Key_SetCatcher( int catcher ) {
-	// If the catcher state is changing, clear all key states
-	if( catcher != keyCatchers )
-		Key_ClearStates( );
-
-	keyCatchers = catcher;
+	cls.keyCatchers = catcher;
 }
 
 // This must not exceed MAX_CMD_LINE

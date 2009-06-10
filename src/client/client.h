@@ -31,14 +31,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../cgame/cg_public.h"
 #include "../game/bg_public.h"
 
-#ifdef USE_CURL
+#if USE_CURL
 #include "cl_curl.h"
 #endif /* USE_CURL */
-
-#ifdef USE_VOIP
-#include "speex/speex.h"
-#include "speex/speex_preprocess.h"
-#endif
 
 // file full of random crap that gets used to create cl_guid
 #define QKEY_FILE "qkey"
@@ -159,7 +154,6 @@ demo through a file.
 =============================================================================
 */
 
-#define MAX_TIMEDEMO_DURATIONS	4096
 
 typedef struct {
 
@@ -226,40 +220,6 @@ typedef struct {
 	int			timeDemoFrames;		// counter of rendered frames
 	int			timeDemoStart;		// cls.realtime before first frame
 	int			timeDemoBaseTime;	// each frame will be at this time + frameNum * 50
-	int			timeDemoLastFrame;// time the last frame was rendered
-	int			timeDemoMinDuration;	// minimum frame duration
-	int			timeDemoMaxDuration;	// maximum frame duration
-	unsigned char	timeDemoDurations[ MAX_TIMEDEMO_DURATIONS ];	// log of frame durations
-
-#ifdef USE_VOIP
-	qboolean speexInitialized;
-	int speexFrameSize;
-	int speexSampleRate;
-
-	// incoming data...
-	// !!! FIXME: convert from parallel arrays to array of a struct.
-	SpeexBits speexDecoderBits[MAX_CLIENTS];
-	void *speexDecoder[MAX_CLIENTS];
-	byte voipIncomingGeneration[MAX_CLIENTS];
-	int voipIncomingSequence[MAX_CLIENTS];
-	float voipGain[MAX_CLIENTS];
-	qboolean voipIgnore[MAX_CLIENTS];
-	qboolean voipMuteAll;
-
-	// outgoing data...
-	int voipTarget1;  // these three ints make up a bit mask of 92 bits.
-	int voipTarget2;  //  the bits say who a VoIP pack is addressed to:
-	int voipTarget3;  //  (1 << clientnum). See cl_voipSendTarget cvar.
-	SpeexPreprocessState *speexPreprocessor;
-	SpeexBits speexEncoderBits;
-	void *speexEncoder;
-	int voipOutgoingDataSize;
-	int voipOutgoingDataFrames;
-	int voipOutgoingSequence;
-	byte voipOutgoingGeneration;
-	byte voipOutgoingData[1024];
-	float voipPower;
-#endif
 
 	// big stuff at end of structure so most offsets are 15 bits or less
 	netchan_t	netchan;
@@ -299,7 +259,13 @@ typedef struct {
 } serverInfo_t;
 
 typedef struct {
+	byte	ip[4];
+	unsigned short	port;
+} serverAddress_t;
+
+typedef struct {
 	connstate_t	state;				// connection status
+	int			keyCatchers;		// bit flags
 
 	qboolean	cddialog;			// bring up the cd needed dialog next frame
 
@@ -325,12 +291,17 @@ typedef struct {
 	serverInfo_t  globalServers[MAX_GLOBAL_SERVERS];
 	// additional global servers
 	int			numGlobalServerAddresses;
-	netadr_t		globalServerAddresses[MAX_GLOBAL_SERVERS];
+	serverAddress_t		globalServerAddresses[MAX_GLOBAL_SERVERS];
 
 	int			numfavoriteservers;
 	serverInfo_t	favoriteServers[MAX_OTHER_SERVERS];
 
+	int			nummplayerservers;
+	serverInfo_t	mplayerServers[MAX_OTHER_SERVERS];
+
 	int pingUpdateSource;		// source currently pinging or updating
+
+	int masterNum;
 
 	// update server info
 	netadr_t	updateServer;
@@ -376,6 +347,7 @@ extern	cvar_t	*cl_run;
 extern	cvar_t	*cl_anglespeedkey;
 
 extern	cvar_t	*cl_sensitivity;
+extern	cvar_t	*cl_platformSensitivity;
 extern	cvar_t	*cl_freelook;
 
 extern	cvar_t	*cl_mouseAccel;
@@ -401,27 +373,6 @@ extern	cvar_t	*cl_inGameVideo;
 extern	cvar_t	*cl_lanForcePackets;
 extern	cvar_t	*cl_autoRecordDemo;
 
-extern	cvar_t	*cl_consoleKeys;
-
-#ifdef USE_MUMBLE
-extern	cvar_t	*cl_useMumble;
-extern	cvar_t	*cl_mumbleScale;
-#endif
-
-#ifdef USE_VOIP
-// cl_voipSendTarget is a string: "all" to broadcast to everyone, "none" to
-//  send to no one, or a comma-separated list of client numbers:
-//  "0,7,2,23" ... an empty string is treated like "all".
-extern	cvar_t	*cl_voipUseVAD;
-extern	cvar_t	*cl_voipVADThreshold;
-extern	cvar_t	*cl_voipSend;
-extern	cvar_t	*cl_voipSendTarget;
-extern	cvar_t	*cl_voipGainDuringCapture;
-extern	cvar_t	*cl_voipCaptureMult;
-extern	cvar_t	*cl_voipShowMeter;
-extern	cvar_t	*cl_voip;
-#endif
-
 //=================================================
 
 //
@@ -433,7 +384,7 @@ void CL_FlushMemory(void);
 void CL_ShutdownAll(void);
 void CL_AddReliableCommand( const char *cmd );
 
-void CL_StartHunkUsers( qboolean rendererOnly );
+void CL_StartHunkUsers( void );
 
 void CL_Disconnect_f (void);
 void CL_GetChallengePacket (void);
@@ -476,10 +427,6 @@ extern	kbutton_t	in_mlook, in_klook;
 extern 	kbutton_t 	in_strafe;
 extern 	kbutton_t 	in_speed;
 
-#ifdef USE_VOIP
-extern 	kbutton_t 	in_voiprecord;
-#endif
-
 void CL_InitInput (void);
 void CL_SendCmd (void);
 void CL_ClearState (void);
@@ -491,7 +438,6 @@ void IN_CenterView (void);
 void CL_VerifyCode( void );
 
 float CL_KeyState (kbutton_t *key);
-int Key_StringToKeynum( char *str );
 char *Key_KeynumToString (int keynum);
 
 //
@@ -499,11 +445,6 @@ char *Key_KeynumToString (int keynum);
 //
 extern int cl_connectedToPureServer;
 extern int cl_connectedToCheatServer;
-
-#ifdef USE_VOIP
-extern int cl_connectedToVoipServer;
-void CL_Voip_f( void );
-#endif
 
 void CL_SystemInfoChanged( void );
 void CL_ParseServerMessage( msg_t *msg );
@@ -556,9 +497,9 @@ void	SCR_FillRect( float x, float y, float width, float height,
 void	SCR_DrawPic( float x, float y, float width, float height, qhandle_t hShader );
 void	SCR_DrawNamedPic( float x, float y, float width, float height, const char *picname );
 
-void	SCR_DrawBigString( int x, int y, const char *s, float alpha, qboolean noColorEscape );			// draws a string with embedded color control characters with fade
-void	SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color, qboolean noColorEscape );	// ignores embedded color control characters
-void	SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, qboolean forceColor, qboolean noColorEscape );
+void	SCR_DrawBigString( int x, int y, const char *s, float alpha );			// draws a string with embedded color control characters with fade
+void	SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color );	// ignores embedded color control characters
+void	SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, qboolean forceColor );
 void	SCR_DrawSmallChar( int x, int y, int ch );
 
 
@@ -618,9 +559,3 @@ void CL_WriteAVIVideoFrame( const byte *imageBuffer, int size );
 void CL_WriteAVIAudioFrame( const byte *pcmBuffer, int size );
 qboolean CL_CloseAVI( void );
 qboolean CL_VideoRecording( void );
-
-//
-// cl_main.c
-//
-void CL_WriteDemoMessage ( msg_t *msg, int headerBytes );
-

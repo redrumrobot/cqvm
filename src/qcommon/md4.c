@@ -24,7 +24,7 @@
 		59 Temple Place - Suite 330
 		Boston, MA  02111-1307, USA
 
-	$Id: mdfour.c,v 1.1 2002/08/23 22:03:27 abster Exp $
+	$Id: md4.c,v 1.1.1.1 2008/01/12 12:48:26 johne Exp $
 */
 
 #include "q_shared.h"

@@ -89,10 +89,10 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles )
   G_UnlaggedClear( player );
 
   // set angles
-  SetClientViewAngle( player, angles );
+  G_SetClientViewAngle( player, angles );
 
   // kill anything at the destination
-  if( player->client->sess.spectatorState == SPECTATOR_NOT )
+  if( player->client->sess.sessionTeam != TEAM_SPECTATOR )
     G_KillBox( player );
 
   // save results of pmove
@@ -101,7 +101,7 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles )
   // use the precise origin for linking
   VectorCopy( player->client->ps.origin, player->r.currentOrigin );
 
-  if( player->client->sess.spectatorState == SPECTATOR_NOT )
+  if( player->client->sess.sessionTeam != TEAM_SPECTATOR )
     trap_LinkEntity (player);
 }
 
@@ -163,10 +163,10 @@ void locateCamera( gentity_t *ent )
   if( owner->spawnflags & 4 )
   {
     // set to 0 for no rotation at all
-    ent->s.misc = 0;
+    ent->s.powerups = 0;
   }
   else
-    ent->s.misc = 1;
+    ent->s.powerups = 1;
 
   // clientNum holds the rotate offset
   ent->s.clientNum = owner->s.clientNum;
@@ -327,7 +327,7 @@ Spawn function for anim model
 */
 void SP_misc_anim_model( gentity_t *self )
 {
-  self->s.misc      = (int)self->animation[ 0 ];
+  self->s.powerups  = (int)self->animation[ 0 ];
   self->s.weapon    = (int)self->animation[ 1 ];
   self->s.torsoAnim = (int)self->animation[ 2 ];
   self->s.legsAnim  = (int)self->animation[ 3 ];

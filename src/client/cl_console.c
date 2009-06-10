@@ -69,15 +69,77 @@ Con_ToggleConsole_f
 ================
 */
 void Con_ToggleConsole_f (void) {
-	// Can't toggle the console when it's the only thing available
-	if ( cls.state == CA_DISCONNECTED && Key_GetCatcher( ) == KEYCATCH_CONSOLE ) {
+	// closing a full screen console restarts the demo loop
+	if ( cls.state == CA_DISCONNECTED && cls.keyCatchers == KEYCATCH_CONSOLE ) {
+		CL_StartDemoLoop();
 		return;
 	}
 
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
 
-	Key_SetCatcher( Key_GetCatcher( ) ^ KEYCATCH_CONSOLE );
+	cls.keyCatchers ^= KEYCATCH_CONSOLE;
+}
+
+/*
+================
+Con_MessageMode_f
+================
+*/
+void Con_MessageMode_f (void) {
+	chat_playerNum = -1;
+	chat_team = qfalse;
+	Field_Clear( &chatField );
+	chatField.widthInChars = 30;
+
+	cls.keyCatchers ^= KEYCATCH_MESSAGE;
+}
+
+/*
+================
+Con_MessageMode2_f
+================
+*/
+void Con_MessageMode2_f (void) {
+	chat_playerNum = -1;
+	chat_team = qtrue;
+	Field_Clear( &chatField );
+	chatField.widthInChars = 25;
+	cls.keyCatchers ^= KEYCATCH_MESSAGE;
+}
+
+/*
+================
+Con_MessageMode3_f
+================
+*/
+void Con_MessageMode3_f (void) {
+	chat_playerNum = VM_Call( cgvm, CG_CROSSHAIR_PLAYER );
+	if ( chat_playerNum < 0 || chat_playerNum >= MAX_CLIENTS ) {
+		chat_playerNum = -1;
+		return;
+	}
+	chat_team = qfalse;
+	Field_Clear( &chatField );
+	chatField.widthInChars = 30;
+	cls.keyCatchers ^= KEYCATCH_MESSAGE;
+}
+
+/*
+================
+Con_MessageMode4_f
+================
+*/
+void Con_MessageMode4_f (void) {
+	chat_playerNum = VM_Call( cgvm, CG_LAST_ATTACKER );
+	if ( chat_playerNum < 0 || chat_playerNum >= MAX_CLIENTS ) {
+		chat_playerNum = -1;
+		return;
+	}
+	chat_team = qfalse;
+	Field_Clear( &chatField );
+	chatField.widthInChars = 30;
+	cls.keyCatchers ^= KEYCATCH_MESSAGE;
 }
 
 /*
@@ -233,17 +295,6 @@ void Con_CheckResize (void)
 	con.display = con.current;
 }
 
-/*
-==================
-Cmd_CompleteTxtName
-==================
-*/
-void Cmd_CompleteTxtName( char *args, int argNum ) {
-	if( argNum == 2 ) {
-		Field_CompleteFilename( "", "txt", qfalse );
-	}
-}
-
 
 /*
 ================
@@ -264,9 +315,12 @@ void Con_Init (void) {
 	CL_LoadConsoleHistory( );
 
 	Cmd_AddCommand ("toggleconsole", Con_ToggleConsole_f);
+	Cmd_AddCommand ("messagemode", Con_MessageMode_f);
+	Cmd_AddCommand ("messagemode2", Con_MessageMode2_f);
+	Cmd_AddCommand ("messagemode3", Con_MessageMode3_f);
+	Cmd_AddCommand ("messagemode4", Con_MessageMode4_f);
 	Cmd_AddCommand ("clear", Con_Clear_f);
 	Cmd_AddCommand ("condump", Con_Dump_f);
-	Cmd_SetCommandCompletionFunc( "condump", Cmd_CompleteTxtName );
 }
 
 
@@ -324,7 +378,7 @@ void CL_ConsolePrint( char *txt ) {
 		con.initialized = qtrue;
 	}
 
-	if( !skipnotify && !( Key_GetCatcher( ) & KEYCATCH_CONSOLE ) ) {
+	if( !skipnotify && !( cls.keyCatchers & KEYCATCH_CONSOLE ) ) {
 		Cmd_SaveCmdContext( );
 
 		// feed the text to cgame
@@ -400,7 +454,7 @@ Draw the editline after a ] prompt
 void Con_DrawInput (void) {
 	int		y;
 
-	if ( cls.state != CA_DISCONNECTED && !(Key_GetCatcher( ) & KEYCATCH_CONSOLE ) ) {
+	if ( cls.state != CA_DISCONNECTED && !(cls.keyCatchers & KEYCATCH_CONSOLE ) ) {
 		return;
 	}
 
@@ -411,7 +465,7 @@ void Con_DrawInput (void) {
 	SCR_DrawSmallChar( con.xadjust + 1 * SMALLCHAR_WIDTH, y, ']' );
 
 	Field_Draw( &g_consoleField, con.xadjust + 2 * SMALLCHAR_WIDTH, y,
-		SCREEN_WIDTH - 3 * SMALLCHAR_WIDTH, qtrue, qtrue );
+		SCREEN_WIDTH - 3 * SMALLCHAR_WIDTH, qtrue );
 }
 
 /*
@@ -443,7 +497,7 @@ void Con_DrawSolidConsole( float frac ) {
 	SCR_AdjustFrom640( &con.xadjust, NULL, NULL, NULL );
 
 	// draw the background
-	y = frac * SCREEN_HEIGHT;
+	y = frac * SCREEN_HEIGHT - 2;
 	if ( y < 1 ) {
 		y = 0;
 	}
@@ -462,11 +516,14 @@ void Con_DrawSolidConsole( float frac ) {
 
 	re.SetColor( g_color_table[ColorIndex(COLOR_RED)] );
 
-	i = strlen( Q3_VERSION );
+	i = strlen( SVN_VERSION );
 
 	for (x=0 ; x<i ; x++) {
-		SCR_DrawSmallChar( cls.glconfig.vidWidth - ( i - x + 1 ) * SMALLCHAR_WIDTH,
-			lines - SMALLCHAR_HEIGHT, Q3_VERSION[x] );
+
+		SCR_DrawSmallChar( cls.glconfig.vidWidth - ( i - x ) * SMALLCHAR_WIDTH, 
+
+			(lines-(SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), SVN_VERSION[x] );
+
 	}
 
 
@@ -539,7 +596,7 @@ void Con_DrawConsole( void ) {
 
 	// if disconnected, render console full screen
 	if ( cls.state == CA_DISCONNECTED ) {
-		if ( !( Key_GetCatcher( ) & (KEYCATCH_UI | KEYCATCH_CGAME)) ) {
+		if ( !( cls.keyCatchers & (KEYCATCH_UI | KEYCATCH_CGAME)) ) {
 			Con_DrawSolidConsole( 1.0 );
 			return;
 		}
@@ -549,8 +606,28 @@ void Con_DrawConsole( void ) {
 		Con_DrawSolidConsole( con.displayFrac );
 	}
 
-	if( Key_GetCatcher( ) & ( KEYCATCH_UI | KEYCATCH_CGAME ) )
+	if( cls.keyCatchers & ( KEYCATCH_UI | KEYCATCH_CGAME ) )
 		return;
+
+	// draw the chat line
+	if( cls.keyCatchers & KEYCATCH_MESSAGE )
+	{
+		int skip;
+
+		if( chat_team )
+		{
+			SCR_DrawBigString( 8, 232, "Team Say:", 1.0f );
+			skip = 11;
+		}
+		else
+		{ 
+			SCR_DrawBigString( 8, 232, "Say:", 1.0f );
+			skip = 5;
+		}
+
+		Field_BigDraw( &chatField, skip * BIGCHAR_WIDTH, 232,
+				SCREEN_WIDTH - ( skip + 1 ) * BIGCHAR_WIDTH, qtrue );
+	}
 }
 
 //================================================================
@@ -564,7 +641,7 @@ Scroll it up or down
 */
 void Con_RunConsole (void) {
 	// decide on the destination height of the console
-	if ( Key_GetCatcher( ) & KEYCATCH_CONSOLE )
+	if ( cls.keyCatchers & KEYCATCH_CONSOLE )
 		con.finalFrac = 0.5;		// half screen
 	else
 		con.finalFrac = 0;				// none visible
@@ -618,7 +695,7 @@ void Con_Close( void ) {
 		return;
 	}
 	Field_Clear( &g_consoleField );
-	Key_SetCatcher( Key_GetCatcher( ) & ~KEYCATCH_CONSOLE );
+	cls.keyCatchers &= ~KEYCATCH_CONSOLE;
 	con.finalFrac = 0;				// none visible
 	con.displayFrac = 0;
 }
