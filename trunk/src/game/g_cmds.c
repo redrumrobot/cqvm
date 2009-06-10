@@ -2057,14 +2057,22 @@ void Cmd_CallVote_f( gentity_t *ent )
   }
    else if( !Q_stricmp( arg1, "poll" ) )
     {
-      if( arg2plus[ 0 ] == '\0' )
+      if(!g_pollVotes.integer)
+      {
+       trap_SendServerCommand( ent-g_entities, "print \"Poll Votes have been disabled\n\"" );
+       return;
+      }
+      else if( arg2plus[ 0 ] == '\0' )
       {
         trap_SendServerCommand( ent-g_entities, "print \"callvote: You forgot to specify what people should vote on.\n\"" );
         return;
       }
-      Com_sprintf( level.voteString, sizeof( level.voteString ), nullstring);
-      Com_sprintf( level.voteDisplayString,
-          sizeof( level.voteDisplayString ), "[Poll] \'%s" S_COLOR_WHITE "\'", arg2plus );
+      else
+       {
+         Com_sprintf( level.voteString, sizeof( level.voteString ), nullstring);
+         Com_sprintf( level.voteDisplayString,
+              sizeof( level.voteDisplayString ), "[Poll] \'%s" S_COLOR_WHITE "\'", arg2plus );
+       }
    }
    else if( !Q_stricmp( arg1, "sudden_death" ) ||
      !Q_stricmp( arg1, "suddendeath" ) )

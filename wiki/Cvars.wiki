@@ -1,0 +1,9 @@
+﻿﻿﻿﻿#summary List of Cvars added by this QVM
+For a full list of Cvars, please run `/cvarlist` in your server console. These are added in the order they were commited
+
+=Cvars=
+ * [Rezyn_features Rezyn's QVM Cvars]
+
+ * `g_pollVotes`: Allows you to disable poll votes on the server
+ ** *default* _1 (enabled)_
+ ** [http://code.google.com/p/cqvm/issues/detail?id=11 patch]

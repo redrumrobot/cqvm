@@ -1,9 +1,9 @@
-﻿#summary These are the changes ported from Rezyn's QVM
+﻿﻿#summary These are the changes ported from Rezyn's QVM
 These changes are from [http://mysite.verizon.net/johne/rezynqvm.html Rezyn's QVM]. This readme is from there as well. They are included in their own Wiki document because they are useful to people, but do not reflect work done only to this QVM.
 
 =Changes.txt=
 
-Rezyn's QVM 1.1      - patch list -        June 4, 2009
+{{{Rezyn's QVM 1.1      - patch list -        June 4, 2009
 
 Tremulous game enhancements and toys for Lakitu7's QVM v 5.5
 
@@ -432,4 +432,4 @@ rez_z901_lak550_branding.patch
   QVM release versioning
 
 
-
+}}}
