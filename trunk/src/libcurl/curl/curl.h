@@ -20,7 +20,7 @@
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
  *
- * $Id: curl.h,v 1.304 2006-08-04 16:08:41 giva Exp $
+ * $Id: curl.h,v 1.1.1.1 2008/01/12 12:48:26 johne Exp $
  ***************************************************************************/
 
 /* If you have problems, all libcurl docs and details are found here:

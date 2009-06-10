@@ -46,10 +46,15 @@ void G_WriteClientSessionData( gclient_t *client )
   const char  *s;
   const char  *var;
 
-  s = va( "%i %i %i %s",
+  s = va( "%i %i %i %i %i %i %i %i %s",
+    client->sess.sessionTeam,
+    client->sess.restartTeam,
     client->sess.spectatorTime,
     client->sess.spectatorState,
     client->sess.spectatorClient,
+    client->sess.wins,
+    client->sess.losses,
+    client->sess.teamLeader,
     BG_ClientListString( &client->sess.ignoreList )
     );
 
@@ -69,21 +74,35 @@ void G_ReadSessionData( gclient_t *client )
 {
   char  s[ MAX_STRING_CHARS ];
   const char  *var;
+
+  // bk001205 - format
+  int teamLeader;
   int spectatorState;
-  char ignorelist[ 17 ];
+  int sessionTeam;
+  int restartTeam;
 
   var = va( "session%i", client - level.clients );
   trap_Cvar_VariableStringBuffer( var, s, sizeof(s) );
 
-  sscanf( s, "%i %i %i %16s",
+  // FIXME: should be using BG_ClientListParse() for ignoreList, but
+  //        bg_lib.c's sscanf() currently lacks %s
+  sscanf( s, "%i %i %i %i %i %i %i %i %x%x",
+    &sessionTeam,
+    &restartTeam,
     &client->sess.spectatorTime,
     &spectatorState,
     &client->sess.spectatorClient,
-    ignorelist
+    &client->sess.wins,
+    &client->sess.losses,
+    &teamLeader,
+    &client->sess.ignoreList.hi,
+    &client->sess.ignoreList.lo
     );
-
+  // bk001205 - format issues
+  client->sess.sessionTeam = (team_t)sessionTeam;
+  client->sess.restartTeam = (pTeam_t)restartTeam;
   client->sess.spectatorState = (spectatorState_t)spectatorState;
-  BG_ClientListParse( &client->sess.ignoreList, ignorelist );
+  client->sess.teamLeader = (qboolean)teamLeader;
 }
 
 
@@ -106,17 +125,18 @@ void G_InitSessionData( gclient_t *client, char *userinfo )
   if( value[ 0 ] == 's' )
   {
     // a willing spectator, not a waiting-in-line
-    sess->spectatorState = SPECTATOR_FREE;
+    sess->sessionTeam = TEAM_SPECTATOR;
   }
   else
   {
     if( g_maxGameClients.integer > 0 &&
       level.numNonSpectatorClients >= g_maxGameClients.integer )
-      sess->spectatorState = SPECTATOR_FREE;
+      sess->sessionTeam = TEAM_SPECTATOR;
     else
-      sess->spectatorState = SPECTATOR_NOT;
+      sess->sessionTeam = TEAM_FREE;
   }
 
+  sess->restartTeam = PTE_NONE;
   sess->spectatorState = SPECTATOR_FREE;
   sess->spectatorTime = level.time;
   sess->spectatorClient = -1;
@@ -136,7 +156,7 @@ void G_WriteSessionData( void )
 {
   int    i;
 
-  //FIXME: What's this for?
+  //TA: ?
   trap_Cvar_Set( "session", va( "%i", 0 ) );
 
   for( i = 0 ; i < level.maxclients ; i++ )

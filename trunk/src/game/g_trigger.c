@@ -54,11 +54,11 @@ void multi_trigger( gentity_t *ent, gentity_t *activator )
   if( activator->client )
   {
     if( ( ent->spawnflags & 1 ) &&
-        activator->client->ps.stats[ STAT_TEAM ] != TEAM_HUMANS )
+        activator->client->ps.stats[ STAT_PTEAM ] != PTE_HUMANS )
       return;
 
     if( ( ent->spawnflags & 2 ) &&
-        activator->client->ps.stats[ STAT_TEAM ] != TEAM_ALIENS )
+        activator->client->ps.stats[ STAT_PTEAM ] != PTE_ALIENS )
       return;
   }
 
@@ -283,7 +283,7 @@ void trigger_teleporter_touch( gentity_t *self, gentity_t *other, trace_t *trace
 
   // Spectators only?
   if( ( self->spawnflags & 1 ) &&
-      other->client->sess.spectatorState == SPECTATOR_NOT )
+      other->client->sess.sessionTeam != TEAM_SPECTATOR )
     return;
 
 
@@ -489,7 +489,7 @@ G_Checktrigger_stages
 Called when stages change
 ===============
 */
-void G_Checktrigger_stages( team_t team, stage_t stage )
+void G_Checktrigger_stages( pTeam_t team, stage_t stage )
 {
   int i;
   gentity_t *ent;
@@ -694,7 +694,7 @@ qboolean trigger_class_match( gentity_t *self, gentity_t *activator )
     //otherwise check against the list
     for( i = 0; self->cTriggers[ i ] != PCL_NONE; i++ )
     {
-      if( activator->client->ps.stats[ STAT_CLASS ] == self->cTriggers[ i ] )
+      if( activator->client->ps.stats[ STAT_PCLASS ] == self->cTriggers[ i ] )
         return qtrue;
     }
   }
@@ -713,7 +713,7 @@ void trigger_class_trigger( gentity_t *self, gentity_t *activator )
   if( !activator->client )
     return;
 
-  if( activator->client->ps.stats[ STAT_TEAM ] != TEAM_ALIENS )
+  if( activator->client->ps.stats[ STAT_PTEAM ] != PTE_ALIENS )
     return;
 
   if( self->s.eFlags & EF_NODRAW )
@@ -853,7 +853,7 @@ void trigger_equipment_trigger( gentity_t *self, gentity_t *activator )
   if( !activator->client )
     return;
 
-  if( activator->client->ps.stats[ STAT_TEAM ] != TEAM_HUMANS )
+  if( activator->client->ps.stats[ STAT_PTEAM ] != PTE_HUMANS )
     return;
 
   if( self->s.eFlags & EF_NODRAW )
@@ -1073,12 +1073,12 @@ trigger_ammo_touch
 */
 void trigger_ammo_touch( gentity_t *self, gentity_t *other, trace_t *trace )
 {
-  int maxClips, maxAmmo;
+  int ammo, clips, maxClips, maxAmmo;
 
   if( !other->client )
     return;
 
-  if( other->client->ps.stats[ STAT_TEAM ] != TEAM_HUMANS )
+  if( other->client->ps.stats[ STAT_PTEAM ] != PTE_HUMANS )
     return;
 
   if( self->timestamp > level.time )
@@ -1087,10 +1087,10 @@ void trigger_ammo_touch( gentity_t *self, gentity_t *other, trace_t *trace )
   if( other->client->ps.weaponstate != WEAPON_READY )
     return;
 
-  if( BG_Weapon( other->client->ps.weapon )->usesEnergy && self->spawnflags & 2 )
+  if( BG_FindUsesEnergyForWeapon( other->client->ps.weapon ) && self->spawnflags & 2 )
     return;
 
-  if( !BG_Weapon( other->client->ps.weapon )->usesEnergy && self->spawnflags & 4 )
+  if( !BG_FindUsesEnergyForWeapon( other->client->ps.weapon ) && self->spawnflags & 4 )
     return;
 
   if( self->spawnflags & 1 )
@@ -1098,21 +1098,25 @@ void trigger_ammo_touch( gentity_t *self, gentity_t *other, trace_t *trace )
   else
     self->timestamp = level.time + FRAMETIME;
 
-  maxAmmo = BG_Weapon( other->client->ps.weapon )->maxAmmo;
-  maxClips = BG_Weapon( other->client->ps.weapon )->maxClips;
+  BG_FindAmmoForWeapon( other->client->ps.weapon, &maxAmmo, &maxClips );
+  BG_UnpackAmmoArray( other->client->ps.weapon, other->client->ps.ammo, other->client->ps.powerups,
+                      &ammo, &clips );
 
-  if( ( other->client->ps.ammo + self->damage ) > maxAmmo )
+  if( ( ammo + self->damage ) > maxAmmo )
   {
-    if( other->client->ps.clips < maxClips )
+    if( clips < maxClips )
     {
-      other->client->ps.clips++;
-      other->client->ps.ammo = 1;
+      clips++;
+      ammo = 1;
     }
     else
-      other->client->ps.ammo = maxAmmo;
+      ammo = maxAmmo;
   }
   else
-    other->client->ps.ammo += self->damage;
+    ammo += self->damage;
+
+  BG_PackAmmoArray( other->client->ps.weapon, other->client->ps.ammo, other->client->ps.powerups,
+                    ammo, clips );
 }
 
 /*

@@ -23,13 +23,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "server.h"
 
-#ifdef USE_VOIP
-cvar_t *sv_voip;
-#endif
-
 serverStatic_t	svs;				// persistant server info
 server_t		sv;					// local server
-vm_t			*gvm = NULL;				// game virtual machine
+vm_t			*gvm = NULL;				// game virtual machine // bk001212 init
 
 cvar_t	*sv_fps;				// time rate for running non-clients
 cvar_t	*sv_timeout;			// seconds without any message
@@ -37,6 +33,8 @@ cvar_t	*sv_zombietime;			// seconds to sink messages after disconnect
 cvar_t	*sv_rconPassword;		// password for remote server commands
 cvar_t	*sv_privatePassword;	// password for the privateClient slots
 cvar_t	*sv_allowDownload;
+cvar_t	*sv_wwwBaseURL;
+cvar_t	*sv_wwwDownload;
 cvar_t	*sv_maxclients;
 
 cvar_t	*sv_privateClients;		// number of clients reserved for password
@@ -223,7 +221,6 @@ but not on every player enter or exit.
 void SV_MasterHeartbeat( void ) {
 	static netadr_t	adr[MAX_MASTER_SERVERS];
 	int			i;
-	int			res;
 
 	// "dedicated 1" is for lan play, "dedicated 2" is for inet public play
 	if ( !com_dedicated || com_dedicated->integer != 2 ) {
@@ -250,16 +247,20 @@ void SV_MasterHeartbeat( void ) {
 			sv_master[i]->modified = qfalse;
 	
 			Com_Printf( "Resolving %s\n", sv_master[i]->string );
-			res = NET_StringToAdr( sv_master[i]->string, &adr[i], NA_UNSPEC );
-			if ( !res ) {
+			if ( !NET_StringToAdr( sv_master[i]->string, &adr[i] ) ) {
+				// if the address failed to resolve, clear it
+				// so we don't take repeated dns hits
 				Com_Printf( "Couldn't resolve address: %s\n", sv_master[i]->string );
+				Cvar_Set( sv_master[i]->name, "" );
+				sv_master[i]->modified = qfalse;
 				continue;
 			}
-			if ( res == 2 ) {
-				// if no port was specified, use the default master port
+			if ( !strchr( sv_master[i]->string, ':' ) ) {
 				adr[i].port = BigShort( PORT_MASTER );
 			}
-			Com_Printf( "%s resolved to %s\n", sv_master[i]->string, NET_AdrToStringwPort(adr[i]));
+			Com_Printf( "%s resolved to %i.%i.%i.%i:%i\n", sv_master[i]->string,
+				adr[i].ip[0], adr[i].ip[1], adr[i].ip[2], adr[i].ip[3],
+				BigShort( adr[i].port ) );
 		}
 
 
@@ -303,7 +304,7 @@ void SV_MasterGameStat( const char *data )
 		return;		// only dedicated servers send stats
 
   Com_Printf( "Resolving %s\n", MASTER_SERVER_NAME );
-  if( !NET_StringToAdr( MASTER_SERVER_NAME, &adr, NA_IP ) )
+  if( !NET_StringToAdr( MASTER_SERVER_NAME, &adr ) )
   {
     Com_Printf( "Couldn't resolve address: %s\n", MASTER_SERVER_NAME );
     return;
@@ -354,6 +355,15 @@ void SVC_Status( netadr_t from ) {
 	// echo back the parameter to status. so master servers can use it as a challenge
 	// to prevent timed spoofed reply packets that add ghost servers
 	Info_SetValueForKey( infostring, "challenge", Cmd_Argv(1) );
+
+	// add "demo" to the sv_keywords if restricted
+	if ( Cvar_VariableValue( "fs_restrict" ) ) {
+		char	keywords[MAX_INFO_STRING];
+
+		Com_sprintf( keywords, sizeof( keywords ), "demo %s",
+			Info_ValueForKey( infostring, "sv_keywords" ) );
+		Info_SetValueForKey( infostring, "sv_keywords", keywords );
+	}
 
 	status[0] = 0;
 	statusLength = 0;
@@ -419,12 +429,6 @@ void SVC_Info( netadr_t from ) {
 	Info_SetValueForKey( infostring, "sv_maxclients", 
 		va("%i", sv_maxclients->integer - sv_privateClients->integer ) );
 	Info_SetValueForKey( infostring, "pure", va("%i", sv_pure->integer ) );
-
-#ifdef USE_VOIP
-	if (sv_voip->integer) {
-		Info_SetValueForKey( infostring, "voip", va("%i", sv_voip->integer ) );
-	}
-#endif
 
 	if( sv_minPing->integer ) {
 		Info_SetValueForKey( infostring, "minPing", va("%i", sv_minPing->integer) );
@@ -785,12 +789,13 @@ void SV_Frame( int msec ) {
 
 	if (!com_sv_running->integer)
 	{
-		// Running as a server, but no map loaded
-#ifdef DEDICATED
-		// Block until something interesting happens
-		Sys_Sleep(-1);
-#endif
-
+		if(com_dedicated->integer)
+		{
+			// Block indefinitely until something interesting happens
+			// on STDIN.
+			NET_Sleep(-1);
+		}
+		
 		return;
 	}
 

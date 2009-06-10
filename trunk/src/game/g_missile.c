@@ -82,6 +82,7 @@ void G_ExplodeMissile( gentity_t *ent )
 
   ent->s.eType = ET_GENERAL;
 
+  //TA: tired... can't be fucked... hack
   if( ent->s.weapon != WP_LOCKBLOB_LAUNCHER &&
       ent->s.weapon != WP_FLAMER )
     G_AddEvent( ent, EV_MISSILE_MISS, DirToByte( dir ) );
@@ -139,7 +140,7 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace )
   }
   else if( !strcmp( ent->classname, "lockblob" ) )
   {
-    if( other->client && other->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS )
+    if( other->client && other->client->ps.stats[ STAT_PTEAM ] == PTE_HUMANS )
     {
       other->client->ps.stats[ STAT_STATE ] |= SS_BLOBLOCKED;
       other->client->lastLockTime = level.time;
@@ -149,7 +150,7 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace )
   }
   else if( !strcmp( ent->classname, "slowblob" ) )
   {
-    if( other->client && other->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS )
+    if( other->client && other->client->ps.stats[ STAT_PTEAM ] == PTE_HUMANS )
     {
       other->client->ps.stats[ STAT_STATE ] |= SS_SLOWLOCKED;
       other->client->lastSlowTime = level.time;
@@ -178,7 +179,7 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace )
       ent->nextthink = level.time + FRAMETIME;
 
       //only damage humans
-      if( other->client && other->client->ps.stats[ STAT_TEAM ] == TEAM_HUMANS )
+      if( other->client && other->client->ps.stats[ STAT_PTEAM ] == PTE_HUMANS )
         returnAfterDamage = qtrue;
       else
         return;
@@ -570,6 +571,12 @@ void AHive_ReturnToHive( gentity_t *self )
     self->think = G_ExplodeMissile;
     self->nextthink = level.time + 15000;
   }
+
+  if( g_modStage3Strength.integer > 0 )
+  {
+    int nt = self->nextthink - level.time;
+    self->nextthink = level.time + nt * 100 / g_modStage3Strength.integer;
+  }
 }
 
 /*
@@ -583,14 +590,15 @@ void AHive_SearchAndDestroy( gentity_t *self )
 {
   vec3_t dir;
   trace_t tr;
+  int speed;
 
   trap_Trace( &tr, self->r.currentOrigin, self->r.mins, self->r.maxs,
               self->target_ent->r.currentOrigin, self->r.ownerNum, self->clipmask );
 
-  //if there is no LOS or the parent hive is too far away or the target is dead, return
+  //if there is no LOS or the parent hive is too far away or the target is dead or notargeting, return
   if( tr.entityNum == ENTITYNUM_WORLD ||
       Distance( self->r.currentOrigin, self->parent->r.currentOrigin ) > ( HIVE_RANGE * 5 ) ||
-      self->target_ent->health <= 0 )
+      self->target_ent->health <= 0 || self->target_ent->flags & FL_NOTARGET )
   {
     self->r.ownerNum = ENTITYNUM_WORLD;
 
@@ -602,13 +610,26 @@ void AHive_SearchAndDestroy( gentity_t *self )
     VectorSubtract( self->target_ent->r.currentOrigin, self->r.currentOrigin, dir );
     VectorNormalize( dir );
 
+    if( g_modStage3Strength.integer > 0 )
+      speed = HIVE_SPEED * g_modStage3Strength.integer / 100;
+    else
+      speed = HIVE_SPEED;
+
     //change direction towards the player
-    VectorScale( dir, HIVE_SPEED, self->s.pos.trDelta );
+    VectorScale( dir, speed, self->s.pos.trDelta );
     SnapVector( self->s.pos.trDelta );      // save net bandwidth
     VectorCopy( self->r.currentOrigin, self->s.pos.trBase );
     self->s.pos.trTime = level.time;
 
     self->nextthink = level.time + HIVE_DIR_CHANGE_PERIOD;
+
+    if( g_modBuildableSpeed.integer > 0)
+      self->nextthink = level.time + HIVE_DIR_CHANGE_PERIOD * 100 / g_modBuildableSpeed.integer;
+    if( g_modStage3Strength.integer > 0)
+    {
+      int nt = self->nextthink - level.time;
+      self->nextthink = level.time + nt * 100 / g_modStage3Strength.integer;
+    }
   }
 }
 
@@ -640,6 +661,12 @@ gentity_t *fire_hive( gentity_t *self, vec3_t start, vec3_t dir )
   bolt->methodOfDeath = MOD_SWARM;
   bolt->clipmask = MASK_SHOT;
   bolt->target_ent = self->target_ent;
+
+  if( g_modBuildableSpeed.integer > 0)
+  {
+    bolt->nextthink = level.time + HIVE_DIR_CHANGE_PERIOD * 100 / g_modBuildableSpeed.integer;
+    bolt->damage = bolt->damage * g_modBuildableSpeed.integer / 100;
+  }
 
   bolt->s.pos.trType = TR_LINEAR;
   bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;   // move a bit on the very first frame
@@ -803,6 +830,9 @@ gentity_t *fire_bounceBall( gentity_t *self, vec3_t start, vec3_t dir )
   SnapVector( bolt->s.pos.trDelta );      // save net bandwidth
   VectorCopy( start, bolt->r.currentOrigin );
   /*bolt->s.eFlags |= EF_BOUNCE;*/
+
+  if( g_modAlienRate.integer > 0 )
+    bolt->damage = bolt->damage * g_modAlienRate.integer / 100;
 
   return bolt;
 }

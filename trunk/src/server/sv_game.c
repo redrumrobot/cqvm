@@ -285,9 +285,14 @@ void SV_GetUsercmd( int clientNum, usercmd_t *cmd ) {
 //==============================================
 
 static int	FloatAsInt( float f ) {
-	floatint_t fi;
-	fi.f = f;
-	return fi.i;
+	union
+	{
+	    int i;
+	    float f;
+	} temp;
+	
+	temp.f = f;
+	return temp.i;
 }
 
 /*
@@ -551,7 +556,7 @@ void SV_RestartGameProgs( void ) {
 
 	// do a restart instead of a free
 	gvm = VM_Restart( gvm );
-	if ( !gvm ) {
+	if ( !gvm ) { // bk001212 - as done below
 		Com_Error( ERR_FATAL, "VM_Restart on game failed" );
 	}
 

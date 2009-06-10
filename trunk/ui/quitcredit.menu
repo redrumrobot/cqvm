@@ -6,13 +6,12 @@
   menuDef
   {
     name "quitCredit"
-    visible MENU_FALSE
-    fullscreen MENU_TRUE
+    visible 0
+    fullscreen 1
     rect 0 0 640 480
     focusColor 1 .75 0 1
-    style WINDOW_STYLE_FILLED
-    border WINDOW_BORDER_NONE
-    aspectBias ASPECT_NONE
+    style 1
+    border 0
     onEsc
     {
       uiScript "quit"
@@ -24,7 +23,7 @@
       style WINDOW_STYLE_SHADER
       rect 0 0 640 480
       type ITEM_TYPE_BUTTON
-      visible MENU_TRUE
+      visible 1
       backcolor 0 0 0 1
       background "ui/assets/credits_splash.jpg"
       action
@@ -33,15 +32,15 @@
         uiScript "quit"
       }
     }
-
+    
     itemDef
     {
       name topstripe
       style WINDOW_STYLE_FILLED
       rect -5 -5 645 64
-      visible MENU_TRUE
+      visible 1
       backcolor 0 0 0 1
-
+      
       border WINDOW_BORDER_FULL
       borderSize 1.5
       borderColor 1 0 0 1
@@ -52,9 +51,9 @@
       name bottomstripe
       style WINDOW_STYLE_FILLED
       rect -5 416 645 485
-      visible MENU_TRUE
+      visible 1
       backcolor 0 0 0 1
-
+      
       border WINDOW_BORDER_FULL
       borderSize 1.5
       borderColor 1 0 0 1
@@ -66,30 +65,34 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        320 48 1 1
-      textalign   ALIGN_CENTER
+      textalign   ITEM_ALIGN_CENTER
+      textalignx  0
+      textaligny  0
       textscale   0.75
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "CREDITS"
       forecolor   1 1 1 1
       backcolor   1 0 0 1
       visible     1
-      decoration
+      decoration 
     }
-
+    
     itemDef
     {
       name        "credit1left"
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        10 96 1 1
-      textalign   ALIGN_LEFT
+      textalign   ITEM_ALIGN_LEFT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Tim 'Timbo' Angus"
       forecolor   1 1 1 1
       backcolor   1 0 0 1
       visible     1
-      decoration
+      decoration 
     }
     itemDef
     {
@@ -97,14 +100,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        630 96 1 1
-      textalign   ALIGN_RIGHT
+      textalign   ITEM_ALIGN_RIGHT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Programming and Direction"
       forecolor   1 1 1 1
       backcolor   0 1 0 1
       visible     1
-      decoration
+      decoration 
     }
 
     itemDef
@@ -113,14 +118,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        10 128 1 1
-      textalign   ALIGN_LEFT
+      textalign   ITEM_ALIGN_LEFT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Nick 'jex' Jansens"
       forecolor   1 1 1 1
       backcolor   1 0 0 1
       visible     1
-      decoration
+      decoration 
     }
     itemDef
     {
@@ -128,14 +135,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        630 128 1 1
-      textalign   ALIGN_RIGHT
+      textalign   ITEM_ALIGN_RIGHT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Mapping, texturing and 2D artwork"
       forecolor   1 1 1 1
       backcolor   0 1 0 1
       visible     1
-      decoration
+      decoration 
     }
 
     itemDef
@@ -144,14 +153,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        10 160 1 1
-      textalign   ALIGN_LEFT
+      textalign   ITEM_ALIGN_LEFT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Robin 'OverFlow' Marshall"
       forecolor   1 1 1 1
       backcolor   1 0 0 1
       visible     1
-      decoration
+      decoration 
     }
     itemDef
     {
@@ -159,14 +170,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        630 160 1 1
-      textalign   ALIGN_RIGHT
+      textalign   ITEM_ALIGN_RIGHT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Modelling, animation and mapping"
       forecolor   1 1 1 1
       backcolor   0 1 0 1
       visible     1
-      decoration
+      decoration 
     }
 
     itemDef
@@ -175,14 +188,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        10 192 1 1
-      textalign   ALIGN_LEFT
+      textalign   ITEM_ALIGN_LEFT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Jan 'Stannum' van der Weg"
       forecolor   1 1 1 1
       backcolor   1 0 0 1
       visible     1
-      decoration
+      decoration 
     }
     itemDef
     {
@@ -190,14 +205,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        630 192 1 1
-      textalign   ALIGN_RIGHT
+      textalign   ITEM_ALIGN_RIGHT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Texturing and mapping"
       forecolor   1 1 1 1
       backcolor   0 1 0 1
       visible     1
-      decoration
+      decoration 
     }
 
     itemDef
@@ -206,14 +223,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        10 224 1 1
-      textalign   ALIGN_LEFT
+      textalign   ITEM_ALIGN_LEFT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Mike 'Veda' McInerney"
       forecolor   1 1 1 1
       backcolor   1 0 0 1
       visible     1
-      decoration
+      decoration 
     }
     itemDef
     {
@@ -221,14 +240,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        630 224 1 1
-      textalign   ALIGN_RIGHT
+      textalign   ITEM_ALIGN_RIGHT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Modelling, animation and texturing"
       forecolor   1 1 1 1
       backcolor   0 1 0 1
       visible     1
-      decoration
+      decoration 
     }
 
     itemDef
@@ -237,14 +258,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        10 256 1 1
-      textalign   ALIGN_LEFT
+      textalign   ITEM_ALIGN_LEFT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Gordon 'Godmil' Miller"
       forecolor   1 1 1 1
       backcolor   1 0 0 1
       visible     1
-      decoration
+      decoration 
     }
     itemDef
     {
@@ -252,14 +275,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        630 256 1 1
-      textalign   ALIGN_RIGHT
+      textalign   ITEM_ALIGN_RIGHT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Mapping"
       forecolor   1 1 1 1
       backcolor   0 1 0 1
       visible     1
-      decoration
+      decoration 
     }
 
     itemDef
@@ -268,14 +293,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        10 288 1 1
-      textalign   ALIGN_LEFT
+      textalign   ITEM_ALIGN_LEFT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "'Who-[Soup]'"
       forecolor   1 1 1 1
       backcolor   1 0 0 1
       visible     1
-      decoration
+      decoration 
     }
     itemDef
     {
@@ -283,14 +310,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        630 288 1 1
-      textalign   ALIGN_RIGHT
+      textalign   ITEM_ALIGN_RIGHT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Mapping"
       forecolor   1 1 1 1
       backcolor   0 1 0 1
       visible     1
-      decoration
+      decoration 
     }
 
     itemDef
@@ -299,14 +328,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        10 320 1 1
-      textalign   ALIGN_LEFT
+      textalign   ITEM_ALIGN_LEFT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Tristan 'jhrx' Blease"
       forecolor   1 1 1 1
       backcolor   1 0 0 1
       visible     1
-      decoration
+      decoration 
     }
     itemDef
     {
@@ -314,14 +345,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        630 320 1 1
-      textalign   ALIGN_RIGHT
+      textalign   ITEM_ALIGN_RIGHT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Mapping"
       forecolor   1 1 1 1
       backcolor   0 1 0 1
       visible     1
-      decoration
+      decoration 
     }
 
     itemDef
@@ -330,14 +363,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        10 352 1 1
-      textalign   ALIGN_LEFT
+      textalign   ITEM_ALIGN_LEFT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Paul 'MoP' Greveson"
       forecolor   1 1 1 1
       backcolor   1 0 0 1
       visible     1
-      decoration
+      decoration 
     }
     itemDef
     {
@@ -345,30 +380,34 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        630 352 1 1
-      textalign   ALIGN_RIGHT
+      textalign   ITEM_ALIGN_RIGHT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Modelling and texturing"
       forecolor   1 1 1 1
       backcolor   0 1 0 1
       visible     1
-      decoration
+      decoration 
     }
-
+    
     itemDef
     {
       name        "credit10left"
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        10 384 1 1
-      textalign   ALIGN_LEFT
+      textalign   ITEM_ALIGN_LEFT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Chris 'Dolby' McCarthy"
       forecolor   1 1 1 1
       backcolor   1 0 0 1
       visible     1
-      decoration
+      decoration 
     }
     itemDef
     {
@@ -376,14 +415,16 @@
       group       grpidcredit
       style       WINDOW_STYLE_EMPTY
       rect        630 384 1 1
-      textalign   ALIGN_RIGHT
+      textalign   ITEM_ALIGN_RIGHT
+      textalignx  0
+      textaligny  10
       textscale   0.50
       textstyle   ITEM_TEXTSTYLE_NORMAL
       text        "Sound"
       forecolor   1 1 1 1
       backcolor   0 1 0 1
       visible     1
-      decoration
+      decoration 
     }
   }
 }

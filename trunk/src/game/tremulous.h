@@ -320,8 +320,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define ALIENSENSE_RANGE            1000.0f
 
-#define ALIEN_POISON_TIME           10000
-#define ALIEN_POISON_DMG            30
+#define ALIEN_POISON_TIME           5000
+#define ALIEN_POISON_DMG            5
 #define ALIEN_POISON_DIVIDER        (1.0f/1.32f) //about 1.0/(time`th root of damage)
 
 #define ALIEN_SPAWN_REPEAT_TIME     10000
@@ -452,9 +452,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #define LIGHTARMOUR_PRICE           70
+#define LIGHTARMOUR_POISON_PROTECTION 1
 
 #define HELMET_PRICE                90
 #define HELMET_RANGE                1000.0f
+#define HELMET_POISON_PROTECTION    2 
 
 #define MEDKIT_PRICE                0
 
@@ -468,6 +470,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define JETPACK_DISABLE_CHANCE      0.3f
 
 #define BSUIT_PRICE                 400
+#define BSUIT_POISON_PROTECTION     4
 
 #define MGCLIP_PRICE                0
 
@@ -475,7 +478,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define GAS_PRICE                   0
 
-#define MEDKIT_POISON_IMMUNITY_TIME 30000
+#define MEDKIT_POISON_IMMUNITY_TIME 0
 #define MEDKIT_STARTUP_TIME         4000
 #define MEDKIT_STARTUP_SPEED        5
 
@@ -615,3 +618,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define DAMAGE_FRACTION_FOR_KILL    0.5f //how much damage players (versus structures) need to
                                          //do to increment the stage kill counters
+
+// g_suddenDeathMode settings
+#define SDMODE_BP                   0 
+#define SDMODE_NO_BUILD             1
+#define SDMODE_SELECTIVE            2

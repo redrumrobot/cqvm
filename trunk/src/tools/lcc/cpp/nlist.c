@@ -29,7 +29,6 @@ struct	kwtab {
 	{"define",	KDEFINE,	ISKW},
 	{"undef",	KUNDEF,		ISKW},
 	{"line",		KLINE,		ISKW},
-	{"warning",	KWARNING,	ISKW},
 	{"error",	KERROR,		ISKW},
 	{"pragma",	KPRAGMA,	ISKW},
 	{"eval",		KEVAL,		ISKW},

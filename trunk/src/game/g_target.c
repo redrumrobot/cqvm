@@ -95,9 +95,9 @@ void Use_Target_Print( gentity_t *ent, gentity_t *other, gentity_t *activator )
   if( ent->spawnflags & 3 )
   {
     if( ent->spawnflags & 1 )
-      G_TeamCommand( TEAM_HUMANS, va( "cp \"%s\"", ent->message ) );
+      G_TeamCommand( PTE_HUMANS, va( "cp \"%s\"", ent->message ) );
     if( ent->spawnflags & 2 )
-      G_TeamCommand( TEAM_ALIENS, va( "cp \"%s\"", ent->message ) );
+      G_TeamCommand( PTE_ALIENS, va( "cp \"%s\"", ent->message ) );
 
     return;
   }
@@ -235,11 +235,11 @@ if RANDOM is checked, only one of the targets will be fired, not all of them
 void target_relay_use( gentity_t *self, gentity_t *other, gentity_t *activator )
 {
   if( ( self->spawnflags & 1 ) && activator && activator->client &&
-      activator->client->ps.stats[ STAT_TEAM ] != TEAM_HUMANS )
+      activator->client->ps.stats[ STAT_PTEAM ] != PTE_HUMANS )
     return;
 
   if( ( self->spawnflags & 2 ) && activator && activator->client &&
-      activator->client->ps.stats[ STAT_TEAM ] != TEAM_ALIENS )
+      activator->client->ps.stats[ STAT_PTEAM ] != PTE_ALIENS )
     return;
 
   if( self->spawnflags & 4 )

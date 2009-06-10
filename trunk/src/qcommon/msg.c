@@ -292,9 +292,13 @@ void MSG_WriteLong( msg_t *sb, int c ) {
 }
 
 void MSG_WriteFloat( msg_t *sb, float f ) {
-	floatint_t dat;
+	union {
+		float	f;
+		int	l;
+	} dat;
+	
 	dat.f = f;
-	MSG_WriteBits( sb, dat.i, 32 );
+	MSG_WriteBits( sb, dat.l, 32 );
 }
 
 void MSG_WriteString( msg_t *sb, const char *s ) {
@@ -386,17 +390,6 @@ int MSG_ReadByte( msg_t *msg ) {
 	return c;
 }
 
-int MSG_LookaheadByte( msg_t *msg ) {
-	const int bloc = Huff_getBloc();
-	const int readcount = msg->readcount;
-	const int bit = msg->bit;
-	int c = MSG_ReadByte(msg);
-	Huff_setBloc(bloc);
-	msg->readcount = readcount;
-	msg->bit = bit;
-	return c;
-}
-
 int MSG_ReadShort( msg_t *msg ) {
 	int	c;
 	
@@ -420,9 +413,13 @@ int MSG_ReadLong( msg_t *msg ) {
 }
 
 float MSG_ReadFloat( msg_t *msg ) {
-	floatint_t dat;
+	union {
+		byte	b[4];
+		float	f;
+		int	l;
+	} dat;
 	
-	dat.i = MSG_ReadBits( msg, 32 );
+	dat.l = MSG_ReadBits( msg, 32 );
 	if ( msg->readcount > msg->cursize ) {
 		dat.f = -1;
 	}	
@@ -439,6 +436,10 @@ char *MSG_ReadString( msg_t *msg ) {
 		c = MSG_ReadByte(msg);		// use ReadByte so -1 is out of bounds
 		if ( c == -1 || c == 0 ) {
 			break;
+		}
+		// translate all fmt spec to avoid crash bugs
+		if ( c == '%' ) {
+			c = '.';
 		}
 		// don't allow higher ascii values
 		if ( c > 127 ) {
@@ -464,6 +465,10 @@ char *MSG_ReadBigString( msg_t *msg ) {
 		if ( c == -1 || c == 0 ) {
 			break;
 		}
+		// translate all fmt spec to avoid crash bugs
+		if ( c == '%' ) {
+			c = '.';
+		}
 		// don't allow higher ascii values
 		if ( c > 127 ) {
 			c = '.';
@@ -487,6 +492,10 @@ char *MSG_ReadStringLine( msg_t *msg ) {
 		c = MSG_ReadByte(msg);		// use ReadByte so -1 is out of bounds
 		if (c == -1 || c == 0 || c == '\n') {
 			break;
+		}
+		// translate all fmt spec to avoid crash bugs
+		if ( c == '%' ) {
+			c = '.';
 		}
 		// don't allow higher ascii values
 		if ( c > 127 ) {
@@ -544,22 +553,20 @@ int	MSG_ReadDelta( msg_t *msg, int oldV, int bits ) {
 }
 
 void MSG_WriteDeltaFloat( msg_t *msg, float oldV, float newV ) {
-	floatint_t fi;
 	if ( oldV == newV ) {
 		MSG_WriteBits( msg, 0, 1 );
 		return;
 	}
-	fi.f = newV;
 	MSG_WriteBits( msg, 1, 1 );
-	MSG_WriteBits( msg, fi.i, 32 );
+	MSG_WriteBits( msg, *(int *)&newV, 32 );
 }
 
 float MSG_ReadDeltaFloat( msg_t *msg, float oldV ) {
 	if ( MSG_ReadBits( msg, 1 ) ) {
-		floatint_t fi;
+		float	newV;
 
-		fi.i = MSG_ReadBits( msg, 32 );
-		return fi.f;
+		*(int *)&newV = MSG_ReadBits( msg, 32 );
+		return newV;
 	}
 	return oldV;
 }
@@ -600,22 +607,20 @@ int	MSG_ReadDeltaKey( msg_t *msg, int key, int oldV, int bits ) {
 }
 
 void MSG_WriteDeltaKeyFloat( msg_t *msg, int key, float oldV, float newV ) {
-	floatint_t fi;
 	if ( oldV == newV ) {
 		MSG_WriteBits( msg, 0, 1 );
 		return;
 	}
-	fi.f = newV;
 	MSG_WriteBits( msg, 1, 1 );
-	MSG_WriteBits( msg, fi.i ^ key, 32 );
+	MSG_WriteBits( msg, (*(int *)&newV) ^ key, 32 );
 }
 
 float MSG_ReadDeltaKeyFloat( msg_t *msg, int key, float oldV ) {
 	if ( MSG_ReadBits( msg, 1 ) ) {
-		floatint_t fi;
+		float	newV;
 
-		fi.i = MSG_ReadBits( msg, 32 ) ^ key;
-		return fi.f;
+		*(int *)&newV = MSG_ReadBits( msg, 32 ) ^ key;
+		return newV;
 	}
 	return oldV;
 }
@@ -786,7 +791,7 @@ typedef struct {
 } netField_t;
 
 // using the stringizing operator to save typing...
-#define	NETF(x) #x,(size_t)&((entityState_t*)0)->x
+#define	NETF(x) #x,(int)&((entityState_t*)0)->x
 
 netField_t	entityStateFields[] = 
 {
@@ -803,7 +808,6 @@ netField_t	entityStateFields[] =
 { NETF(angles2[1]), 0 },
 { NETF(eType), 8 },
 { NETF(torsoAnim), 8 },
-{ NETF(weaponAnim), 8 },
 { NETF(eventParm), 8 },
 { NETF(legsAnim), 8 },
 { NETF(groundEntityNum), GENTITYNUM_BITS },
@@ -819,11 +823,11 @@ netField_t	entityStateFields[] =
 { NETF(origin[1]), 0 },
 { NETF(origin[2]), 0 },
 { NETF(solid), 24 },
-{ NETF(misc), MAX_MISC },
+{ NETF(powerups), MAX_POWERUPS },
 { NETF(modelindex), 8 },
 { NETF(otherEntityNum2), GENTITYNUM_BITS },
 { NETF(loopSound), 8 },
-{ NETF(generic1), 16 },
+{ NETF(generic1), 8 },
 { NETF(origin2[2]), 0 },
 { NETF(origin2[0]), 0 },
 { NETF(origin2[1]), 0 },
@@ -978,6 +982,8 @@ If the delta removes the entity, entityState_t->number will be set to MAX_GENTIT
 Can go from either a baseline or a previous packet_entity
 ==================
 */
+extern	cvar_t	*cl_shownet;
+
 void MSG_ReadDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, 
 						 int number) {
 	int			i, lc;
@@ -1100,7 +1106,7 @@ plyer_state_t communication
 */
 
 // using the stringizing operator to save typing...
-#define	PSF(x) #x,(size_t)&((playerState_t*)0)->x
+#define	PSF(x) #x,(int)&((playerState_t*)0)->x
 
 netField_t	playerStateFields[] = 
 {
@@ -1119,7 +1125,6 @@ netField_t	playerStateFields[] =
 { PSF(pm_time), -16 },
 { PSF(eventSequence), 16 },
 { PSF(torsoAnim), 8 },
-{ PSF(weaponAnim), 8 },
 { PSF(movementDir), 4 },
 { PSF(events[0]), 8 },
 { PSF(legsAnim), 8 },
@@ -1129,8 +1134,8 @@ netField_t	playerStateFields[] =
 { PSF(weaponstate), 4 },
 { PSF(eFlags), 16 },
 { PSF(externalEvent), 10 },
-{ PSF(gravity), -16 },
-{ PSF(speed), -16 },
+{ PSF(gravity), 16 },
+{ PSF(speed), 16 },
 { PSF(delta_angles[1]), 16 },
 { PSF(externalEventParm), 8 },
 { PSF(viewheight), -8 },
@@ -1138,9 +1143,7 @@ netField_t	playerStateFields[] =
 { PSF(damageYaw), 8 },
 { PSF(damagePitch), 8 },
 { PSF(damageCount), 8 },
-{ PSF(ammo), 12 },
-{ PSF(clips), 4 },
-{ PSF(generic1), 16 },
+{ PSF(generic1), 8 },
 { PSF(pm_type), 8 },					
 { PSF(delta_angles[0]), 16 },
 { PSF(delta_angles[2]), 16 },
@@ -1168,7 +1171,8 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 	playerState_t	dummy;
 	int				statsbits;
 	int				persistantbits;
-	int				miscbits;
+	int				ammobits;
+	int				powerupbits;
 	int				numFields;
 	int				c;
 	netField_t		*field;
@@ -1248,14 +1252,20 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 			persistantbits |= 1<<i;
 		}
 	}
-	miscbits = 0;
-	for (i=0 ; i<MAX_MISC ; i++) {
-		if (to->misc[i] != from->misc[i]) {
-			miscbits |= 1<<i;
+	ammobits = 0;
+	for (i=0 ; i<MAX_WEAPONS ; i++) {
+		if (to->ammo[i] != from->ammo[i]) {
+			ammobits |= 1<<i;
+		}
+	}
+	powerupbits = 0;
+	for (i=0 ; i<MAX_POWERUPS ; i++) {
+		if (to->powerups[i] != from->powerups[i]) {
+			powerupbits |= 1<<i;
 		}
 	}
 
-	if (!statsbits && !persistantbits && !miscbits) {
+	if (!statsbits && !persistantbits && !ammobits && !powerupbits) {
 		MSG_WriteBits( msg, 0, 1 );	// no change
 		oldsize += 4;
 		return;
@@ -1284,12 +1294,23 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 	}
 
 
-	if ( miscbits ) {
+	if ( ammobits ) {
 		MSG_WriteBits( msg, 1, 1 );	// changed
-		MSG_WriteBits( msg, miscbits, MAX_MISC );
-		for (i=0 ; i<MAX_MISC ; i++)
-			if (miscbits & (1<<i) )
-				MSG_WriteLong( msg, to->misc[i] );
+		MSG_WriteBits( msg, ammobits, MAX_WEAPONS );
+		for (i=0 ; i<MAX_WEAPONS ; i++)
+			if (ammobits & (1<<i) )
+				MSG_WriteShort (msg, to->ammo[i]);
+	} else {
+		MSG_WriteBits( msg, 0, 1 );	// no change
+	}
+
+
+	if ( powerupbits ) {
+		MSG_WriteBits( msg, 1, 1 );	// changed
+		MSG_WriteBits( msg, powerupbits, MAX_POWERUPS );
+		for (i=0 ; i<MAX_POWERUPS ; i++)
+			if (powerupbits & (1<<i) )
+				MSG_WriteLong( msg, to->powerups[i] );
 	} else {
 		MSG_WriteBits( msg, 0, 1 );	// no change
 	}
@@ -1403,13 +1424,24 @@ void MSG_ReadDeltaPlayerstate (msg_t *msg, playerState_t *from, playerState_t *t
 			}
 		}
 
-		// parse misc data
+		// parse ammo
 		if ( MSG_ReadBits( msg, 1 ) ) {
-			LOG("PS_MISC");
-			bits = MSG_ReadBits (msg, MAX_MISC);
-			for (i=0 ; i<MAX_MISC ; i++) {
+			LOG("PS_AMMO");
+			bits = MSG_ReadBits (msg, MAX_WEAPONS);
+			for (i=0 ; i<MAX_WEAPONS ; i++) {
 				if (bits & (1<<i) ) {
-					to->misc[i] = MSG_ReadLong(msg);
+					to->ammo[i] = MSG_ReadShort(msg);
+				}
+			}
+		}
+
+		// parse powerups
+		if ( MSG_ReadBits( msg, 1 ) ) {
+			LOG("PS_POWERUPS");
+			bits = MSG_ReadBits (msg, MAX_POWERUPS);
+			for (i=0 ; i<MAX_POWERUPS ; i++) {
+				if (bits & (1<<i) ) {
+					to->powerups[i] = MSG_ReadLong(msg);
 				}
 			}
 		}

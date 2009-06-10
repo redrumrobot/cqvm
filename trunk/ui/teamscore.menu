@@ -3,329 +3,256 @@
 {
   \\ score_menu \\
 
-#define W         500
-#define H         338
-#define BORDER    10
-
-#define TOFF      10
-#define SPEC_W    75
-#define BAR_H     30
-
-#define LLIST_L   0
-#define LLIST_R   (W/2)
-#define RLIST_L   (W/2)
-#define RLIST_R   W
-
   menuDef
   {
     name "teamscore_menu"
-    visible MENU_FALSE
-    fullscreen MENU_FALSE
-    rect (320-(W/2)) (240-(H/2)) W H
+    visible 0
+    fullscreen 0
+    rect 0 0 640 480
     focusColor 1 .75 0 1
-    style WINDOW_STYLE_EMPTY
+    style 0
+    border 1
 
-    // TEAM NAME  //
+    // GAMETYPE BAR	//
+
+    //	TEAM NAME	//
 
     itemDef
     {
       name teamNameWindow
-      rect 0 0 W BAR_H
+      rect 14 78 612 30 
       style WINDOW_STYLE_FILLED
-      border WINDOW_BORDER_FULL
-      borderSize 1.0
+      border 1
       bordercolor .5 .5 .5 1
       forecolor 1 1 1 1
-      backcolor 0 0 0 .8
-      visible MENU_TRUE
+      backcolor 0 0 0 .5
+      visible 1
       decoration
     }
-
+  
     itemDef
     {
       name alienteamname
-      textalign ALIGN_LEFT
-      textvalign VALIGN_CENTER
-      textalignx TOFF
-      textscale 0.4
-      rect 0 0 (W/3) BAR_H
-      forecolor 1 1 1 1
+      text "Aliens"
+      textalign ITEM_ALIGN_LEFT
+      textscale .5
+      textaligny 26
+      rect 20 78 306 23
+      forecolor 1 1 1 1	 
       decoration
-      visible MENU_TRUE
-      ownerdraw CG_ALIENS_SCORE_LABEL
+      visible 1 	  
     }
 
     itemDef
     {
       name stagereport
-      textalign ALIGN_CENTER
-      textvalign VALIGN_CENTER
-      textscale 0.33
-      rect (W/3) 0 (W/3) BAR_H
-      forecolor 1 1 1 1
+      align ITEM_ALIGN_CENTER
+      textscale 0.4
+      textaligny 24
+      rect 14 78 612 23
+      forecolor 1 1 1 1	 
       decoration
-      visible MENU_TRUE
+      visible 1
       ownerdraw CG_STAGE_REPORT_TEXT
     }
 
     itemDef
     {
       name humanteamname
-      textalign ALIGN_RIGHT
-      textvalign VALIGN_CENTER
-      textalignx -TOFF
-      textscale 0.4
-      rect ((2*W)/3) 0 (W/3) BAR_H
+      text "Humans"
+      textalign ITEM_ALIGN_RIGHT
+      textscale .5
+      textaligny 26
+      rect 620 78 0 23		 
       forecolor 1 1 1 1
       decoration
-      visible MENU_TRUE
-      ownerdraw CG_HUMANS_SCORE_LABEL
+      visible 1 	  
     }
 
-    //  TEAM BARS  //
-
+    //	TEAM BARS	//
+	
     itemDef
     {
       name leftteambar
-      rect 0 (BAR_H+BORDER) (W/2) BAR_H
+      rect 14 112 307 25	
       style WINDOW_STYLE_FILLED
-      border WINDOW_BORDER_FULL
-      borderSize 1.0
+      border 1
       bordercolor .5 .5 .5 1
       forecolor 1 1 1 1
-      backcolor 0 0 0 .8
-      visible MENU_TRUE
+      backcolor 0 0 0 .5
+      visible 1
       decoration
     }
 
     itemDef
     {
       name rightteambar
-      rect (W/2) (BAR_H+BORDER) (W/2) BAR_H
+      rect 320 112 306 25	
       style WINDOW_STYLE_FILLED
-      border WINDOW_BORDER_FULL
-      borderSize 1.0
+      border 1
       bordercolor .5 .5 .5 1
       forecolor 1 1 1 1
-      backcolor 0 0 0 .8
-      visible MENU_TRUE
+      backcolor 0 0 0 .5
+      visible 1
       decoration
     }
 
 
-    //  TEAM HEADINGS  //
+    //	TEAM HEADINGS	//
 
     itemDef
     {
-      text "Status"
-      textscale .33
-      style WINDOW_STYLE_EMPTY
-      rect (LLIST_L+10) (BAR_H+BORDER) 1 BAR_H
-      textalign ALIGN_LEFT
-      textvalign VALIGN_CENTER
-      backcolor 0 0 0 0
-      forecolor 1 .75 0 1
-      decoration
-      visible MENU_TRUE
-    }
-
-    itemDef
-    {
-      text "Name"
-      textscale .33
-      style WINDOW_STYLE_EMPTY
-      rect (LLIST_L+50) (BAR_H+BORDER) 1 BAR_H
-      textalign ALIGN_LEFT
-      textvalign VALIGN_CENTER
-      backcolor 0 0 0 0
-      forecolor 1 .75 0 1
-      decoration
-      visible MENU_TRUE
-    }
-
-    itemDef
-    {
-      text "Kills"
-      textscale .33
-      style WINDOW_STYLE_EMPTY
-      rect (LLIST_R-95) (BAR_H+BORDER) 1 BAR_H
-      textalign ALIGN_RIGHT
-      textvalign VALIGN_CENTER
-      backcolor 0 0 0 0
-      forecolor 1 .75 0 1
-      decoration
-      visible MENU_TRUE
-    }
-
-    itemDef
-    {
-      text "Time"
-      textscale .33
-      style WINDOW_STYLE_EMPTY
-      rect (LLIST_R-55) (BAR_H+BORDER) 1 BAR_H
-      textalign ALIGN_RIGHT
-      textvalign VALIGN_CENTER
-      backcolor 0 0 0 0
-      forecolor 1 .75 0 1
-      decoration
-      visible MENU_TRUE
-    }
-
-    itemDef
-    {
-      text "Ping"
-      textscale .33
-      style WINDOW_STYLE_EMPTY
-      rect (LLIST_R-15) (BAR_H+BORDER) 1 BAR_H
-      textalign ALIGN_RIGHT
-      textvalign VALIGN_CENTER
-      backcolor 0 0 0 0
-      forecolor 1 .75 0 1
-      decoration
-      visible MENU_TRUE
-    }
-
-    itemDef
-    {
-      text "Status"
-      textscale .33
-      style WINDOW_STYLE_EMPTY
-      rect (RLIST_L+10) (BAR_H+BORDER) 1 BAR_H
-      textalign ALIGN_LEFT
-      textvalign VALIGN_CENTER
-      backcolor 0 0 0 0
-      forecolor 1 .75 0 1
-      decoration
-      visible MENU_TRUE
-    }
-
-    itemDef
-    {
-      text "Name"
-      textscale .33
-      style WINDOW_STYLE_EMPTY
-      rect (RLIST_L+50) (BAR_H+BORDER) 1 BAR_H
-      textalign ALIGN_LEFT
-      textvalign VALIGN_CENTER
-      backcolor 0 0 0 0
-      forecolor 1 .75 0 1
-      decoration
-      visible MENU_TRUE
-    }
-
-    itemDef
-    {
-      text "Kills"
-      textscale .33
-      style WINDOW_STYLE_EMPTY
-      rect (RLIST_R-95) (BAR_H+BORDER) 1 BAR_H
-      textalign ALIGN_RIGHT
-      textvalign VALIGN_CENTER
-      backcolor 0 0 0 0
-      forecolor 1 .75 0 1
-      decoration
-      visible MENU_TRUE
-    }
-
-    itemDef
-    {
-      text "Time"
-      textscale .33
-      style WINDOW_STYLE_EMPTY
-      rect (RLIST_R-55) (BAR_H+BORDER) 1 BAR_H
-      textalign ALIGN_RIGHT
-      textvalign VALIGN_CENTER
-      backcolor 0 0 0 0
-      forecolor 1 .75 0 1
-      decoration
-      visible MENU_TRUE
-    }
-
-    itemDef
-    {
-      text "Ping"
-      textscale .33
-      style WINDOW_STYLE_EMPTY
-      rect (RLIST_R-15) (BAR_H+BORDER) 1 BAR_H
-      textalign ALIGN_RIGHT
-      textvalign VALIGN_CENTER
-      backcolor 0 0 0 0
-      forecolor 1 .75 0 1
-      decoration
-      visible MENU_TRUE
-    }
-
-    itemDef
-    {
-      name leftlist
-      rect 0 ((2*BAR_H)+BORDER) (W/2) (H-((3*BAR_H)+(2*BORDER)))
-      style WINDOW_STYLE_FILLED
-      backcolor 0 0 0 .6
-      border WINDOW_BORDER_FULL
-      borderSize 1.0
-      bordercolor .5 .5 .5 1
-      forecolor .75 .75 .75 1
-      visible MENU_TRUE
-      type ITEM_TYPE_LISTBOX
-      elementwidth 135
-      elementheight 16
+      name leftteamheadings
+      text "Status     Name                                        Kills       Time        Ping"
       textscale .25
-      elementtype LISTBOX_TEXT
-      feeder FEEDER_ALIENTEAM_LIST
-      notselectable
-      noscrollbar
-      columns 7
-        5             15            ALIGN_LEFT
-        21            15            ALIGN_LEFT
-        7             30            ALIGN_LEFT
-        45            ((W/2)-170)   ALIGN_LEFT
-        ((W/2)-120)   20            ALIGN_RIGHT
-        ((W/2)-80)    20            ALIGN_RIGHT
-        ((W/2)-40)    20            ALIGN_RIGHT
+      style 0	
+      rect 25 112 128 30 
+      textalign 0		
+      textalignx 0		// x alignment point for text
+        // use it to offset left/right text from the edge 
+                // or to center the text on a different point
+      textaligny 18        
+      backcolor 0 0 0 0
+      forecolor 1 .75 0 1
+      decoration
+      visible 1 	  
     }
-
+    
     itemDef
     {
-      name rightlist
-      rect (W/2) ((2*BAR_H)+BORDER) (W/2) (H-((3*BAR_H)+(2*BORDER)))
-      style WINDOW_STYLE_FILLED
-      backcolor 0 0 0 .6
-      border WINDOW_BORDER_FULL
-      borderSize 1.0
-      bordercolor .5 .5 .5 1
-      forecolor .75 .75 .75 1
-      visible MENU_TRUE
-      type ITEM_TYPE_LISTBOX
-      elementwidth 135
-      elementheight 16
+      name rightteamheadings
+      text "Status     Name                                        Kills       Time        Ping"
       textscale .25
-      elementtype LISTBOX_TEXT
-      feeder FEEDER_HUMANTEAM_LIST
-      notselectable
-      noscrollbar
-      columns 7
-        5             15            ALIGN_LEFT
-        21            15            ALIGN_LEFT
-        7             30            ALIGN_LEFT
-        45            ((W/2)-170)   ALIGN_LEFT
-        ((W/2)-120)   20            ALIGN_RIGHT
-        ((W/2)-80)    20            ALIGN_RIGHT
-        ((W/2)-40)    20            ALIGN_RIGHT
+      style 0	
+      rect 331 112 128 30 
+      textalign 0		
+      textalignx 0		// x alignment point for text
+        // use it to offset left/right text from the edge 
+                // or to center the text on a different point
+      textaligny 18        
+      backcolor 0 0 0 0
+      forecolor 1 .75 0 1
+      decoration
+      visible 1 	  
     }
 
-    //  spectators  //
+
+    // GRADIENT BACKGROUNDS	//
 
     itemDef
     {
       name window
-      rect 0 (H-BAR_H) W BAR_H
+      rect 320 142 1 220	
       style WINDOW_STYLE_FILLED
-      border WINDOW_BORDER_FULL
-      borderSize 1.0
+      border 1
       bordercolor .5 .5 .5 1
-      backcolor 0 0 0 .8
+      forecolor 1 1 1 1
+      backcolor 0 0 0 1
+      visible 1
+      decoration
+    }
+
+    itemDef
+    {
+      name window
+      rect 300 142 1 220	
+      style WINDOW_STYLE_FILLED
+      border 1
+      bordercolor .5 .5 .5 1
+      visible 1
+      decoration
+    }
+
+    itemDef
+    {
+      name window
+      rect 606 142 1 220	
+      style WINDOW_STYLE_FILLED
+      border 1
+      bordercolor .5 .5 .5 1
+      visible 1
+      decoration
+    }
+
+
+    //	LIST	//
+
+    itemDef
+    {
+      name leftlist
+      rect 14 136 306 222 
+      forecolor .75 .75 .75 1
+      visible 1 
+      type ITEM_TYPE_LISTBOX
+      elementwidth 135
+      elementheight 20
+      textscale .25
+      elementtype LISTBOX_TEXT
+      feeder FEEDER_ALIENTEAM_LIST
+      notselectable
+      columns 7
+        5   15  1   ITEM_ALIGN_LEFT
+        21  15  1   ITEM_ALIGN_LEFT
+        7   30  5   ITEM_ALIGN_LEFT
+        45  100 24  ITEM_ALIGN_LEFT
+        172 20  4   ITEM_ALIGN_RIGHT
+        209 20  4   ITEM_ALIGN_RIGHT
+        247 20  4   ITEM_ALIGN_RIGHT
+    }
+
+    itemDef 
+    {
+      name rightlist
+      rect 320 136 306 222 	 	     
+      forecolor 1 1 1 1
+      visible 1 
+      type ITEM_TYPE_LISTBOX
+      elementwidth 135
+      elementheight 20
+      textscale .25
+      elementtype LISTBOX_TEXT
+      feeder FEEDER_HUMANTEAM_LIST
+      notselectable
+      columns 7
+        5   15  1   ITEM_ALIGN_LEFT
+        21  15  1   ITEM_ALIGN_LEFT
+        7   30  5   ITEM_ALIGN_LEFT
+        45  100 24  ITEM_ALIGN_LEFT
+        172 20  4   ITEM_ALIGN_RIGHT
+        209 20  4   ITEM_ALIGN_RIGHT
+        247 20  4   ITEM_ALIGN_RIGHT
+    }
+
+
+    //	PLAYER LIST BORDER	//
+
+    itemDef
+    {
+      name window
+      rect 14 141 612 221	
+      style WINDOW_STYLE_EMPTY
+      border 1
+      bordercolor .5 .5 .5 1
+      forecolor 1 1 1 1
+      backcolor 0 0 0 .5
+      visible 1
+      decoration
+    }
+
+
+    //	spectators	//
+
+    itemDef
+    {
+      name window
+      rect 14 366 612 24	
+      style WINDOW_STYLE_FILLED
+      border 1
+      bordercolor .5 .5 .5 1
+      forecolor 1 1 1 .7
+      backcolor 0 0 0 .5
       textscale .33
-      visible MENU_TRUE
+      visible 1
       decoration
     }
 
@@ -333,42 +260,46 @@
     {
       name window
       text "Spectating:"
-      rect 0 (H-BAR_H) SPEC_W BAR_H
+      textaligny 20 
+      rect 19 366 82 24	
       style WINDOW_STYLE_FILLED
       forecolor 1 1 1 1
       textscale .33
-      textalign ALIGN_LEFT
-      textvalign VALIGN_CENTER
-      textalignx TOFF
-      visible MENU_TRUE
+      textalignx 3
+      visible 1
       decoration
     }
 
     itemDef
     {
       name window
-      rect SPEC_W (H-BAR_H) (W-SPEC_W) BAR_H
+      rect 100 366 520 24	
       style WINDOW_STYLE_FILLED
       forecolor 1 1 1 1
       textscale .33
-      textvalign VALIGN_CENTER
-      visible MENU_TRUE
+      visible 1
       ownerdraw CG_SPECTATORS
       decoration
     }
+    
+    // WINNAR           //
 
     itemDef
     {
       name winner
-      rect (W/2) (H+BAR_H) 0 0
-      style WINDOW_STYLE_EMPTY
+      rect 310 400 612 40
+      type 4
+      style 0
+      text ""
+      cvar ui_winner
+      maxPaintChars 24
+      textalign ITEM_ALIGN_CENTER
+      textaligny 20
+      textscale .5
       forecolor 1 1 1 1
-      textscale 0.5
-      textalign ALIGN_CENTER
-      textvalign VALIGN_TOP
-      visible MENU_TRUE
-      cvar "ui_winner"
+      visible 1
       decoration
     }
+    
   }
 }

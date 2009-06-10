@@ -20,7 +20,7 @@
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
  *
- * $Id: multi.h,v 1.38 2006-08-04 18:53:48 danf Exp $
+ * $Id: multi.h,v 1.1.1.1 2008/01/12 12:48:26 johne Exp $
  ***************************************************************************/
 /*
   This is an "external" header file. Don't give away any internals here!

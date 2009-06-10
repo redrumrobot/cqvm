@@ -496,7 +496,7 @@ void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 
 	inv_denom = 1.0f / DotProduct( normal, normal );
 #ifndef Q3_VM
-	assert( Q_fabs(inv_denom) != 0.0f ); // zero vectors get here
+	assert( Q_fabs(inv_denom) != 0.0f ); // bk010122 - zero vectors get here
 #endif
 	inv_denom = 1.0f / inv_denom;
 
@@ -550,7 +550,10 @@ void VectorRotate( vec3_t in, vec3_t matrix[3], vec3_t out )
 */
 float Q_rsqrt( float number )
 {
-	floatint_t t;
+	union {
+		float f;
+		int i;
+	} t;
 	float x2, y;
 	const float threehalfs = 1.5F;
 
@@ -561,14 +564,14 @@ float Q_rsqrt( float number )
 	y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
 //	y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
 
+	//assert( !isnan(y) ); // bk010122 - FPE?
 	return y;
 }
 
 float Q_fabs( float f ) {
-	floatint_t fi;
-	fi.f = f;
-	fi.i &= 0x7FFFFFFF;
-	return fi.f;
+	int tmp = * ( int * ) &f;
+	tmp &= 0x7FFFFFFF;
+	return * ( float * ) &tmp;
 }
 #endif
 
@@ -1083,55 +1086,9 @@ void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs ) {
 	}
 }
 
-qboolean BoundsIntersect(const vec3_t mins, const vec3_t maxs,
-		const vec3_t mins2, const vec3_t maxs2)
-{
-	if ( maxs[0] < mins2[0] ||
-		maxs[1] < mins2[1] ||
-		maxs[2] < mins2[2] ||
-		mins[0] > maxs2[0] ||
-		mins[1] > maxs2[1] ||
-		mins[2] > maxs2[2])
-	{
-		return qfalse;
-	}
-
-	return qtrue;
-}
-
-qboolean BoundsIntersectSphere(const vec3_t mins, const vec3_t maxs,
-		const vec3_t origin, vec_t radius)
-{
-	if ( origin[0] - radius > maxs[0] ||
-		origin[0] + radius < mins[0] ||
-		origin[1] - radius > maxs[1] ||
-		origin[1] + radius < mins[1] ||
-		origin[2] - radius > maxs[2] ||
-		origin[2] + radius < mins[2])
-	{
-		return qfalse;
-	}
-
-	return qtrue;
-}
-
-qboolean BoundsIntersectPoint(const vec3_t mins, const vec3_t maxs,
-		const vec3_t origin)
-{
-	if ( origin[0] > maxs[0] ||
-		origin[0] < mins[0] ||
-		origin[1] > maxs[1] ||
-		origin[1] < mins[1] ||
-		origin[2] > maxs[2] ||
-		origin[2] < mins[2])
-	{
-		return qfalse;
-	}
-
-	return qtrue;
-}
 
 vec_t VectorNormalize( vec3_t v ) {
+	// NOTE: TTimo - Apple G4 altivec source uses double?
 	float	length, ilength;
 
 	length = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
@@ -1155,11 +1112,17 @@ vec_t VectorNormalize2( const vec3_t v, vec3_t out) {
 
 	if (length)
 	{
+#ifndef Q3_VM // bk0101022 - FPE related
+//	  assert( ((Q_fabs(v[0])!=0.0f) || (Q_fabs(v[1])!=0.0f) || (Q_fabs(v[2])!=0.0f)) );
+#endif
 		ilength = 1/length;
 		out[0] = v[0]*ilength;
 		out[1] = v[1]*ilength;
 		out[2] = v[2]*ilength;
 	} else {
+#ifndef Q3_VM // bk0101022 - FPE related
+//	  assert( ((Q_fabs(v[0])==0.0f) && (Q_fabs(v[1])==0.0f) && (Q_fabs(v[2])==0.0f)) );
+#endif
 		VectorClear( out );
 	}
 		
@@ -1585,11 +1548,15 @@ Don't pass doubles to this
 */
 int Q_isnan( float x )
 {
-	floatint_t fi;
+	union
+	{
+		float f;
+		unsigned int i;
+	} t;
 
-	fi.f = x;
-	fi.ui &= 0x7FFFFFFF;
-	fi.ui = 0x7F800000 - fi.ui;
+	t.f = x;
+	t.i &= 0x7FFFFFFF;
+	t.i = 0x7F800000 - t.i;
 
-	return (int)( (unsigned int)fi.ui >> 31 );
+	return (int)( (unsigned int)t.i >> 31 );
 }
