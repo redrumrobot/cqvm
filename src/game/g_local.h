@@ -1345,6 +1345,7 @@ extern  vmCvar_t  g_blood;
 extern  vmCvar_t  g_allowVote;
 extern  vmCvar_t  g_requireVoteReasons;
 extern  vmCvar_t  g_voteLimit;
+extern  vmCvar_t  g_pollVotes;
 extern  vmCvar_t  g_suddenDeathVotePercent;
 extern  vmCvar_t  g_suddenDeathVoteDelay;
 extern  vmCvar_t  g_extendVotesPercent;
