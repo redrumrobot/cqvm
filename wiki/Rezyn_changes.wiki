@@ -1,4 +1,4 @@
-﻿﻿#summary These are the changes ported from Rezyn's QVM
+﻿#summary These are the changes ported from Rezyn's QVM
 These changes are from [http://mysite.verizon.net/johne/rezynqvm.html Rezyn's QVM]. This readme is from there as well. They are included in their own Wiki document because they are useful to people, but do not reflect work done only to this QVM.
 
 =Changes.txt=
