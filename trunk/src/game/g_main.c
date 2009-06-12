@@ -261,6 +261,10 @@ vmCvar_t  g_modTurretAngle;
 vmCvar_t  g_modStage3Strength;
 vmCvar_t  g_modMainStrength;
 
+vmCvar_t  mod_jetpackFuel;
+vmCvar_t  mod_jetpackConsume;
+vmCvar_t  mod_jetpackRegen;
+
 static cvarTable_t   gameCvarTable[ ] =
 {
   // don't override the cheat state set by the system
@@ -502,6 +506,11 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_allowShare, "g_allowShare", "0", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qfalse},
   { &g_creditOverflow, "g_creditOverflow", "0", CVAR_ARCHIVE | CVAR_SERVERINFO, 0, qfalse},
   { &g_banNotice, "g_banNotice", "", CVAR_ARCHIVE, 0, qfalse  },
+  
+  { &mod_jetpackFuel, "mod_jetpackFuel", "0", CVAR_ARCHIVE, 0, qfalse  },
+  { &mod_jetpackConsume, "mod_jetpackConsume", "2", CVAR_ARCHIVE, 0, qfalse  },
+  { &mod_jetpackRegen, "mod_jetpackRegen", "3", CVAR_ARCHIVE, 0, qfalse  }
+
 };
 
 static int gameCvarTableSize = sizeof( gameCvarTable ) / sizeof( gameCvarTable[ 0 ] );
