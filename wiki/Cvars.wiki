@@ -15,8 +15,8 @@ For a full list of Cvars, please run `/cvarlist` in your server console. These a
     * *default* _0 (Off)_
     * *Values* 10.0 + (On) 
    * `mod_jetpackConsume`: How many units per second the jetpack consumes.
-    * *default* _2 (Off)_
+    * *default* _2 (On)_
     * *Values* 1 + (On) 0 - (Off)
    * `mod_jetpackRegen`: How many units per second the jetpack Regenerates.
-    * *default* _3 (Off)_
+    * *default* _3 (On)_
     * *Values* 1 + (On) 0 - (Off)
