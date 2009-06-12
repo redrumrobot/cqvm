@@ -1,5 +1,9 @@
 ﻿#summary Features used by this qvm
 #labels Featured,Phase-Implementation
 
+Jetpack Fuel
+ * Author: _Slacker_
+ * Link: [http://code.google.com/p/cqvm/issues/detail?id=7 patch]
+
 ==Cvars==
 A complete list of cvars is avalible at [Cvars]
