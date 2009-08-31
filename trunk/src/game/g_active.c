@@ -521,8 +521,12 @@ ClientInactivityTimer
 Returns qfalse if the client is dropped
 =================
 */
-qboolean ClientInactivityTimer( gclient_t *client )
+qboolean ClientInactivityTimer( gentity_t *ent )
 {
+  gclient_t *client;
+
+  client = ent->client;
+
   if( ! g_inactivity.integer )
   {
     // give everyone some time, so if the operator sets g_inactivity during
@@ -542,6 +546,22 @@ qboolean ClientInactivityTimer( gclient_t *client )
   {
     if( level.time > client->inactivityTime )
     {
+      if( g_inactivityMode.integer == 1 )
+      {
+        char buf[ MAX_STRING_CHARS ];
+
+        Com_sprintf( buf, sizeof( buf ),
+          "%s^7 moved from %s to spectators due to inactivity\n",
+          client->pers.netname,
+          ( client->pers.teamSelection == PTE_ALIENS ) ? "aliens" : "humans" );
+        trap_SendServerCommand( -1, va( "print \"%s\"", buf ) );
+        G_LogOnlyPrintf( "Inactivity: %s", buf );
+
+        G_ChangeTeam( ent, PTE_NONE );
+        client->inactivityTime = level.time + g_inactivity.integer * 1000;
+        client->inactivityWarning = qfalse;
+        return qtrue;
+      }
       trap_DropClient( client - level.clients, "Dropped due to inactivity" );
       return qfalse;
     }
@@ -549,7 +569,10 @@ qboolean ClientInactivityTimer( gclient_t *client )
     if( level.time > client->inactivityTime - 10000 && !client->inactivityWarning )
     {
       client->inactivityWarning = qtrue;
-      trap_SendServerCommand( client - level.clients, "cp \"Ten seconds until inactivity drop!\n\"" );
+      if( g_inactivityMode.integer == 1 )
+        trap_SendServerCommand( client - level.clients, "cp \"Ten seconds until inactivity spectate!\n\"" );
+      else
+        trap_SendServerCommand( client - level.clients, "cp \"Ten seconds until inactivity drop!\n\"" );
     }
   }
 
@@ -1623,7 +1646,7 @@ void ClientThink_real( gentity_t *ent )
   }
 
   // check for inactivity timer, but never drop the local client of a non-dedicated server
-  if( !ClientInactivityTimer( client ) )
+  if( !ClientInactivityTimer( ent ) )
     return;
 
   // calculate where ent is currently seeing all the other active clients 
