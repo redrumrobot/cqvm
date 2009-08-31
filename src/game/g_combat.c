@@ -1537,7 +1537,35 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
         {
           attacker->client->pers.statscounters.spreebleeds += take;
 
-          if( g_bleedingSpreeKick.integer && attacker->client->pers.bleeder &&
+          if( g_bleedingSpreeKick.integer == 2 )
+          {
+            if( attacker->client->pers.statscounters.spreebleeds > g_bleedingSpree.integer * 100 )
+            {
+              char buf[ MAX_STRING_CHARS ];
+
+              Com_sprintf( buf, sizeof( buf ),
+                "%s^7 moved from %s to spectators due to excessive team damage\n",
+                attacker->client->pers.netname,
+                ( attacker->client->pers.teamSelection == PTE_ALIENS ) ? "aliens" : "humans" );
+              trap_SendServerCommand( -1, va( "print \"%s\"", buf ) );
+              G_LogOnlyPrintf( "Teamkilling: %s", buf );
+
+              G_admin_tklog_log( attacker, NULL, mod );
+
+              trap_SendConsoleCommand( EXEC_APPEND, va( "!putteam %d spectators\n", attacker - g_entities ) );
+              attacker->client->pers.statscounters.spreebleeds = 0;
+            }
+            else if( attacker->client->pers.statscounters.spreebleeds > g_bleedingSpree.integer * 66 &&
+                     attacker->client->pers.bleederLastWarn + 20 * 1000 < level.time )
+            {
+              attacker->client->pers.bleederLastWarn = level.time;
+              trap_SendServerCommand( attacker - g_entities,
+                "print \"^3Please do not damage your teammates or your base\n\"" );
+              trap_SendServerCommand( attacker - g_entities,
+                "cp \"^1Please do not damage your teammates or your base\"" );
+            }
+          }
+          else if( g_bleedingSpreeKick.integer && attacker->client->pers.bleeder &&
               attacker->client->pers.statscounters.spreebleeds > g_bleedingSpree.integer * 100 + g_bleedingSpree.integer * 20 )
           {
             trap_SendConsoleCommand( EXEC_APPEND,
