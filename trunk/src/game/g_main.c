@@ -377,7 +377,7 @@ static cvarTable_t   gameCvarTable[ ] =
 
   { &g_practiceText, "g_practiceText", "", 0, 0, qfalse},
   { &g_practiceCount, "g_practiceCount", "0", 0, 0, qfalse},
-  { &g_freeCredits, "g_freeCredits", "0", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_freeCredits, "g_freeCredits", "0", CVAR_ARCHIVE, 0, qtrue },
   
   { &g_listEntity, "g_listEntity", "0", 0, 0, qfalse },
   { &g_minCommandPeriod, "g_minCommandPeriod", "500", 0, 0, qfalse},
