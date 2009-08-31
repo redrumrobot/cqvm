@@ -1146,7 +1146,7 @@ qboolean G_Flood_Limited( gentity_t *ent );
 // g_client.c
 //
 char *ClientConnect( int clientNum, qboolean firstTime );
-void ClientUserinfoChanged( int clientNum );
+void ClientUserinfoChanged( int clientNum, qboolean forceName );
 void ClientDisconnect( int clientNum );
 void ClientBegin( int clientNum );
 void ClientCommand( int clientNum );
@@ -1476,6 +1476,7 @@ extern  vmCvar_t  g_slapDamage;
 
 extern  vmCvar_t  g_voteMinTime;
 extern  vmCvar_t  g_mapvoteMaxTime;
+extern  vmCvar_t  g_votableMaps;
 extern  vmCvar_t  g_defeatVoteMinTime;
 
 extern  vmCvar_t  g_practiceText;
