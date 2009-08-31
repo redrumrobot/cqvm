@@ -1762,8 +1762,10 @@ void AddFloat( char **buf_p, float fval, int width, int prec )
   buf = *buf_p;
 
   while( digits < width )
+  {
     *buf++ = ' ';
     width--;
+  }
 
   while( digits-- )
     *buf++ = text[ digits ];
