@@ -1735,6 +1735,12 @@ void Cmd_CallVote_f( gentity_t *ent )
     trap_SendServerCommand( ent-g_entities, "print \"Voting not allowed here\n\"" );
     return;
   }
+
+  if( G_admin_permission( ent, ADMF_NO_VOTE ) )
+  {
+    trap_SendServerCommand( ent-g_entities, "print \"You have no voting rights\n\"" );
+    return;
+  }
   
   // Flood limit.  If they're talking too fast, determine that and return.
   if( g_floodMinTime.integer )
@@ -2418,6 +2424,12 @@ void Cmd_CallTeamVote_f( gentity_t *ent )
   if( !g_allowVote.integer || g_allowVote.integer == 2 )
   {
     trap_SendServerCommand( ent-g_entities, "print \"Team voting not allowed here\n\"" );
+    return;
+  }
+
+  if( G_admin_permission( ent, ADMF_NO_VOTE ) )
+  {
+    trap_SendServerCommand( ent-g_entities, "print \"You have no voting rights\n\"" );
     return;
   }
 
