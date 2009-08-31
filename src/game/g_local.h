@@ -1333,6 +1333,7 @@ extern  vmCvar_t  g_speed;
 extern  vmCvar_t  g_knockback;
 extern  vmCvar_t  g_quadfactor;
 extern  vmCvar_t  g_inactivity;
+extern  vmCvar_t  g_inactivityMode;
 extern  vmCvar_t  g_debugMove;
 extern  vmCvar_t  g_debugAlloc;
 extern  vmCvar_t  g_debugDamage;
