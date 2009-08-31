@@ -4331,7 +4331,6 @@ qboolean G_admin_mute( gentity_t *ent, int skiparg )
             vic->client->pers.netname,
             ( ent ) ? G_admin_adminPrintName( ent ) : "console" ) );
   }
-  ClientUserinfoChanged( pids[ 0 ] );
   return qtrue;
 }
 
@@ -4416,7 +4415,6 @@ qboolean G_admin_denybuild( gentity_t *ent, int skiparg )
       vic->client->pers.netname,
       ( ent ) ? G_admin_adminPrintName( ent ) : "console" ) );
   }
-  ClientUserinfoChanged( pids[ 0 ] );
   return qtrue;
 }
 
@@ -4566,7 +4564,7 @@ qboolean G_admin_denyweapon( gentity_t *ent, int skiparg )
                             maxAmmo, maxClips );
           G_ForceWeaponChange( vic, WP_MACHINEGUN );
           vic->client->ps.stats[ STAT_MISC ] = 0;
-          ClientUserinfoChanged( pids[ 0 ] );
+          ClientUserinfoChanged( pids[ 0 ], qfalse );
         }
       }
     }
@@ -4611,7 +4609,7 @@ qboolean G_admin_denyweapon( gentity_t *ent, int skiparg )
         cost = BG_ClassCanEvolveFromTo( PCL_ALIEN_LEVEL0, class, 9, 0 );
         if( cost < 0 ) cost = 0;
         G_AddCreditToClient( vic->client, cost, qfalse );
-        ClientUserinfoChanged( pids[ 0 ] );
+        ClientUserinfoChanged( pids[ 0 ], qfalse );
         VectorCopy( infestOrigin, vic->s.pos.trBase );
         ClientSpawn( vic, vic, vic->s.pos.trBase, vic->s.apos.trBase );
       }
@@ -5817,7 +5815,6 @@ qboolean G_admin_pause( gentity_t *ent, int skiparg )
             vic->client->pers.netname,
             ( ent ) ? ent->client->pers.netname : "console" ) );
     }
-    ClientUserinfoChanged( pids[ i ] );
   }
   return qtrue;
 }
@@ -5978,7 +5975,6 @@ qboolean G_admin_register(gentity_t *ent, int skiparg ){
   }
 
   trap_SendConsoleCommand( EXEC_APPEND,va( "!setlevel %d %d;",ent - g_entities, level) );
-  ClientUserinfoChanged( ent - g_entities );
   
   AP( va( "print \"^3!register: ^7%s^7 is now a protected nickname.\n\"", ent->client->pers.netname) );
   
@@ -6029,7 +6025,7 @@ qboolean G_admin_rename( gentity_t *ent, int skiparg )
   Q_strncpyz( oldname, s, sizeof( oldname ) );
   Info_SetValueForKey( userinfo, "name", newname );
   trap_SetUserinfo( pids[ 0 ], userinfo );
-  ClientUserinfoChanged( pids[ 0 ] );
+  ClientUserinfoChanged( pids[ 0 ], qtrue );
   if( strcmp( oldname, level.clients[ pids[ 0 ] ].pers.netname ) )
     AP( va( "print \"^3!rename: ^7%s^7 has been renamed to %s^7 by %s\n\"",
         oldname,
@@ -6318,7 +6314,7 @@ qboolean G_admin_designate( gentity_t *ent, int skiparg )
   if( !admin_higher( ent, &g_entities[ pids[ 0 ] ] ) &&
     !Q_stricmp( cmd, "undesignate" ) )
   {
-    ADMP( "^3!mute: ^7sorry, but your intended victim has a higher admin"
+    ADMP( "^3!designate: ^7sorry, but your intended victim has a higher admin"
         " level than you\n" );
     return qfalse;
   }
@@ -6351,7 +6347,6 @@ qboolean G_admin_designate( gentity_t *ent, int skiparg )
       vic->client->pers.netname,
       ( ent ) ? G_admin_adminPrintName( ent ) : "console" ) );
   }
-  ClientUserinfoChanged( pids[ 0 ] );
   return qtrue;
 }
 

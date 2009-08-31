@@ -233,6 +233,7 @@ vmCvar_t  g_slapDamage;
 
 vmCvar_t  g_voteMinTime;
 vmCvar_t  g_mapvoteMaxTime;
+vmCvar_t  g_votableMaps;
 vmCvar_t  g_defeatVoteMinTime;
 
 vmCvar_t  g_practiceText;
@@ -352,6 +353,7 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_voteLimit, "g_voteLimit", "5", CVAR_ARCHIVE, 0, qfalse },
   { &g_voteMinTime, "g_voteMinTime", "120", CVAR_ARCHIVE, 0, qfalse },
   { &g_mapvoteMaxTime, "g_mapvoteMaxTime", "240", CVAR_ARCHIVE, 0, qfalse },
+  { &g_votableMaps, "g_votableMaps", "", CVAR_ARCHIVE, 0, qtrue },
   { &g_defeatVoteMinTime, "g_defeatVoteMinTime", "60", CVAR_ARCHIVE, 0, qfalse },
   { &g_suddenDeathVotePercent, "g_suddenDeathVotePercent", "74", CVAR_ARCHIVE, 0, qfalse },
   { &g_suddenDeathVoteDelay, "g_suddenDeathVoteDelay", "180", CVAR_ARCHIVE, 0, qfalse },
@@ -554,7 +556,7 @@ intptr_t vmMain( int command, int arg0, int arg1, int arg2, int arg3, int arg4,
       return 0;
 
     case GAME_CLIENT_USERINFO_CHANGED:
-      ClientUserinfoChanged( arg0 );
+      ClientUserinfoChanged( arg0, qfalse );
       return 0;
 
     case GAME_CLIENT_DISCONNECT:
@@ -1328,7 +1330,7 @@ void G_SpawnClients( pTeam_t team )
       ent = &g_entities[ clientNum ];
 
       ent->client->sess.sessionTeam = TEAM_FREE;
-      ClientUserinfoChanged( clientNum );
+      ClientUserinfoChanged( clientNum, qfalse );
       ClientSpawn( ent, spawn, spawn_origin, spawn_angles );
     }
   }

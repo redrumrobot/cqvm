@@ -1103,7 +1103,7 @@ The game can override any of the settings and call trap_SetUserinfo
 if desired.
 ============
 */
-void ClientUserinfoChanged( int clientNum )
+void ClientUserinfoChanged( int clientNum, qboolean forceName )
 {
   gentity_t *ent;
   int       teamTask, teamLeader, health;
@@ -1173,30 +1173,34 @@ void ClientUserinfoChanged( int clientNum )
     }
 
 
-    if( client->pers.muted )
+    if( !forceName )
     {
-      trap_SendServerCommand( ent - g_entities,
-        "print \"You cannot change your name while you are muted\n\"" );
-      revertName = qtrue;
-    }
-    else if( client->pers.nameChangeTime &&
+      if( client->pers.muted )
+      {
+        trap_SendServerCommand( ent - g_entities,
+            "print \"You cannot change your name while you are muted\n\"" );
+        revertName = qtrue;
+      }
+      else if( client->pers.nameChangeTime &&
       ( level.time - client->pers.nameChangeTime )
       <= ( g_minNameChangePeriod.value * 1000 ) )
-    {
-      trap_SendServerCommand( ent - g_entities, va(
-        "print \"Name change spam protection (g_minNameChangePeriod = %d)\n\"",
-         g_minNameChangePeriod.integer ) );
-      revertName = qtrue;
-    }
-    else if( g_maxNameChanges.integer > 0
+      {
+        trap_SendServerCommand( ent - g_entities, va(
+            "print \"Name change spam protection (g_minNameChangePeriod = %d)\n\"",
+            g_minNameChangePeriod.integer ) );
+        revertName = qtrue;
+      }
+      else if( g_maxNameChanges.integer > 0
       && client->pers.nameChanges >= g_maxNameChanges.integer  )
-    {
-      trap_SendServerCommand( ent - g_entities, va(
-        "print \"Maximum name changes reached (g_maxNameChanges = %d)\n\"",
-         g_maxNameChanges.integer ) );
-      revertName = qtrue;
+      {
+        trap_SendServerCommand( ent - g_entities, va(
+            "print \"Maximum name changes reached (g_maxNameChanges = %d)\n\"",
+            g_maxNameChanges.integer ) );
+        revertName = qtrue;
+      }
     }
-    else if( !G_admin_name_check( ent, newname, err, sizeof( err ) ) )
+
+    if( !G_admin_name_check( ent, newname, err, sizeof( err ) ) )
     {
       trap_SendServerCommand( ent - g_entities, va( "print \"%s\n\"", err ) );
       revertName = qtrue;
@@ -1499,7 +1503,7 @@ char *ClientConnect( int clientNum, qboolean firstTime )
     client->pers.firstConnect = qfalse;
 
   // get and distribute relevent paramters
-  ClientUserinfoChanged( clientNum );
+  ClientUserinfoChanged( clientNum, qfalse );
   
   G_admin_set_adminname( ent );
   

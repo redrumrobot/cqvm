@@ -738,7 +738,7 @@ void G_ChangeTeam( gentity_t *ent, pTeam_t newTeam )
   ent->client->pers.teamChangeTime = level.time;
 
   //update ClientInfo
-  ClientUserinfoChanged( ent->client->ps.clientNum );
+  ClientUserinfoChanged( ent->client->ps.clientNum, qfalse );
   G_CheckDBProtection( );
 }
 
@@ -1688,6 +1688,25 @@ static int map_vote_percent( const char *map, int fallback )
   return fallback;
 }
 
+static qboolean map_is_votable( const char *map )
+{
+  char maps[ MAX_CVAR_VALUE_STRING ];
+  char *token, *token_p;
+
+  if( !g_votableMaps.string[ 0 ] )
+    return qtrue;
+
+  Q_strncpyz( maps, g_votableMaps.string, sizeof( maps ) );
+  token_p = maps;
+  while( *( token = COM_Parse( &token_p ) ) )
+  {
+    if( !Q_stricmp( token, map ) )
+      return qtrue;
+  }
+
+  return qfalse;
+}
+
 /*
 ==================
 Cmd_CallVote_f
@@ -1980,12 +1999,20 @@ void Cmd_CallVote_f( gentity_t *ent )
        return;
     }
   
-    if( !trap_FS_FOpenFile( va( "maps/%s.bsp", arg2 ), NULL, FS_READ ) )
+    if( !G_MapExists( arg2 ) )
     {
       trap_SendServerCommand( ent - g_entities, va( "print \"callvote: "
         "'maps/%s.bsp' could not be found on the server\n\"", arg2 ) );
       return;
     }
+
+    if( !G_admin_permission( ent, ADMF_NO_VOTE_LIMIT ) && !map_is_votable( arg2 ) )
+    {
+      trap_SendServerCommand( ent - g_entities, va( "print \"callvote: "
+        "Only admins may call a vote for map: %s\n\"", arg2 ) );
+      return;
+    }
+
     Com_sprintf( level.voteString, sizeof( level.voteString ), "%s %s", arg1, arg2 );
     Com_sprintf( level.voteDisplayString,
         sizeof( level.voteDisplayString ), "Change to map '%s'", arg2 );
@@ -2007,12 +2034,20 @@ void Cmd_CallVote_f( gentity_t *ent )
       return;
     }
 
-    if( !trap_FS_FOpenFile( va( "maps/%s.bsp", arg2 ), NULL, FS_READ ) )
+    if( !G_MapExists( arg2 ) )
     {
       trap_SendServerCommand( ent - g_entities, va( "print \"callvote: "
         "'maps/%s^7.bsp' could not be found on the server\n\"", arg2 ) );
       return;
     }
+
+    if( !G_admin_permission( ent, ADMF_NO_VOTE_LIMIT ) && !map_is_votable( arg2 ) )
+    {
+      trap_SendServerCommand( ent - g_entities, va( "print \"callvote: "
+        "Only admins may call a vote for map: %s\n\"", arg2 ) );
+      return;
+    }
+
     Com_sprintf( level.voteString, sizeof( level.voteString ),
       "set g_nextMap %s", arg2 );
     Com_sprintf( level.voteDisplayString,
@@ -3101,7 +3136,7 @@ void Cmd_Class_f( gentity_t *ent )
           //remove credit
           G_AddCreditToClient( ent->client, -(short)numLevels, qtrue );
           ent->client->pers.classSelection = newClass;
-          ClientUserinfoChanged( clientNum );
+          ClientUserinfoChanged( clientNum, qfalse );
           VectorCopy( infestOrigin, ent->s.pos.trBase );
           ClientSpawn( ent, ent, ent->s.pos.trBase, ent->s.apos.trBase );
           return;
@@ -3858,7 +3893,7 @@ void Cmd_Buy_f( gentity_t *ent )
   }
 
   //update ClientInfo
-  ClientUserinfoChanged( ent->client->ps.clientNum );
+  ClientUserinfoChanged( ent->client->ps.clientNum, qfalse );
 }
 
 
@@ -4005,7 +4040,7 @@ void Cmd_Sell_f( gentity_t *ent )
   }
 
   //update ClientInfo
-  ClientUserinfoChanged( ent->client->ps.clientNum );
+  ClientUserinfoChanged( ent->client->ps.clientNum, qfalse );
 }
 
 
@@ -4869,7 +4904,7 @@ static void Cmd_Ignore_f( gentity_t *ent )
       if( !BG_ClientListTest( &ent->client->sess.ignoreList, pids[ i ] ) )
       {
         BG_ClientListAdd( &ent->client->sess.ignoreList, pids[ i ] );
-        ClientUserinfoChanged( ent->client->ps.clientNum );
+        ClientUserinfoChanged( ent->client->ps.clientNum, qfalse );
         trap_SendServerCommand( ent-g_entities, va( "print \"[skipnotify]"
           "ignore: added %s^7 to your ignore list\n\"",
           level.clients[ pids[ i ] ].pers.netname ) );
@@ -4886,7 +4921,7 @@ static void Cmd_Ignore_f( gentity_t *ent )
       if( BG_ClientListTest( &ent->client->sess.ignoreList, pids[ i ] ) )
       {
         BG_ClientListRemove( &ent->client->sess.ignoreList, pids[ i ] );
-        ClientUserinfoChanged( ent->client->ps.clientNum );
+        ClientUserinfoChanged( ent->client->ps.clientNum, qfalse );
         trap_SendServerCommand( ent-g_entities, va( "print \"[skipnotify]"
           "unignore: removed %s^7 from your ignore list\n\"",
           level.clients[ pids[ i ] ].pers.netname ) );
@@ -5813,29 +5848,33 @@ void G_CP( gentity_t *ent )
       Q_strcat( prefixes, sizeof( prefixes ), " " );
       ptr++;
 
-      while( *ptr != ' ' )
+      while( *ptr && *ptr != ' ' )
       {
-        if( *ptr == 'a' || *ptr == 'A' )
+        if( !sendAliens && ( *ptr == 'a' || *ptr == 'A' ) )
         {
           sendAliens = qtrue;
           Q_strcat( prefixes, sizeof( prefixes ), "[^1A^7]" );
         }
-        if( *ptr == 'h' || *ptr == 'H' )
+        if( !sendHumans && ( *ptr == 'h' || *ptr == 'H' ) )
         {
           sendHumans = qtrue;
           Q_strcat( prefixes, sizeof( prefixes ), "[^4H^7]" );
         }
-        if( *ptr == 's' || *ptr == 'S' )
+        if( !sendSpecs && ( *ptr == 's' || *ptr == 'S' ) )
         {
           sendSpecs = qtrue;
           Q_strcat( prefixes, sizeof( prefixes ), "[^3S^7]" );
         }
         ptr++;
       }
-      text = ptr+1;
+      if( *ptr ) text = ptr+1;
+      else text = ptr;
    }
   
   strcpy( wrappedtext, text );
+
+  if( strlen( text ) == 0 ) return;
+
   G_WordWrap( wrappedtext, 50 );
 
   for( i = 0; i < level.maxclients; i++ )
