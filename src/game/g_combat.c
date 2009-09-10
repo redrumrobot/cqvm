@@ -1543,6 +1543,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
             {
               char buf[ MAX_STRING_CHARS ];
 
+              G_admin_autorevert( attacker );
+
               Com_sprintf( buf, sizeof( buf ),
                 "%s^7 moved from %s to spectators due to excessive team damage\n",
                 attacker->client->pers.netname,
