@@ -382,6 +382,11 @@ g_admin_cmd_t g_admin_cmds[ ] =
       "[^3name|slot#^7]"
     },
 
+    {"nobuild", G_admin_nobuild, "nobuild",
+      "Enable and control nobuild mode.",
+      "[^3on|off|save|add|del|list|mode|zone|+|-|go^7]"
+    },
+
     {"unpause", G_admin_pause, "pause",
       "allow a player to interact with the game."
       "  * will unpause all players, using no argument will unpause game clock",
@@ -7962,6 +7967,76 @@ qboolean G_admin_L1(gentity_t *ent, int skiparg ){
   }
  
   trap_SendConsoleCommand( EXEC_APPEND,va( "!setlevel %d 1;", pids[ 0 ] ) );
+  return qtrue;
+}
+
+qboolean G_admin_nobuild(gentity_t *ent, int skiparg )
+{
+  char func[ 32 ];
+
+  if( ent && ent->client->pers.teamSelection != PTE_NONE )
+  {
+    ADMP( "^3!bring: ^7you can only use this command from spectator\n" );
+    return qfalse;
+  }
+
+  if( G_SayArgc() < 2 + skiparg )
+  {
+    ADMP( "^3!nobuild: ^7usage: !nobuild [on|off|save|add|del|list|mode|zone|+|-|go]\n" );
+    return qfalse;
+  }
+  G_SayArgv( 1 + skiparg, func, sizeof( func ) );
+
+  if( !Q_stricmp( func, "on" ) )
+  {
+    nobuild_set( qtrue, ent );
+  }
+  else if( !Q_stricmp( func, "off" ) )
+  {
+    nobuild_set( qfalse, ent );
+  }
+  else if( !Q_stricmp( func, "save" ) )
+  {
+    nobuild_save( );
+  }
+  else if( !Q_stricmp( func, "list" ) )
+  {
+    nobuild_list( ent );
+  }
+  else if( !Q_stricmp( func, "add" ) )
+  {
+    nobuild_add( ent );
+  }
+  else if( !Q_stricmp( func, "del" ) )
+  {
+    nobuild_del( ent );
+  }
+  else if( !Q_stricmp( func, "zone" ) )
+  {
+    nobuild_command( ent, qtrue, qfalse, 0.0f );
+  }
+  else if( !Q_stricmp( func, "mode" ) )
+  {
+    nobuild_command( ent, qfalse, qtrue, 0.0f );
+  }
+  else if( !Q_stricmp( func, "+" ) )
+  {
+    nobuild_command( ent, qfalse, qfalse, 8.0f );
+  }
+  else if( !Q_stricmp( func, "-" ) )
+  {
+    nobuild_command( ent, qfalse, qfalse, -8.0f );
+  }
+  else if( !Q_stricmp( func, "go" ) )
+  {
+    nobuild_go( ent );
+  }
+  else
+  {
+    ADMP( "^3!nobuild: ^7usage: !nobuild [on|off|save|add|del|list|mode|zone|+|-|go]\n" );
+    return qfalse;
+  }
+
   return qtrue;
 }
 
