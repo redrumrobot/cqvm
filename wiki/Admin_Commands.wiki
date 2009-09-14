@@ -1,4 +1,4 @@
-﻿﻿#summary A list of all the admin commmands added to this QVM
+﻿#summary A list of all the admin commmands added to this QVM
 
 This is a list of commands that are unique to this qvm, or are different from other QVMs. It is in the order in which they are added. For all command info, run !help ingame 
 
@@ -37,4 +37,3 @@ Players with the `SEESFULLLISTPLAYERS` flag still see invisible players
  ** '''Default level''': 4
  * `SEESFULLLISTPLAYERS`: Allows an admin to see every player that is connected to the server, including invisible ones
 ** '''Default level''': 4
-
