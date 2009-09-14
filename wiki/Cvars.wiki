@@ -1,14 +1,22 @@
-﻿#summary List of Cvars added by this QVM
-For a full list of Cvars, please run `/cvarlist` in your server console. These are added in the order they were commited
-<wiki:toc />
+﻿﻿#summary List of Cvars added by this QVM
+For a full list of Cvars, please run `/cvarlist` in your server console.
+
+=g_inactivityMode=
+Controls behavior of automatic inactivity.
+==Values==
+ * '''0''': Default, player is dropped from server
+ * '''1''': Player is moved to spectators
+=g_bleedingSpreeKick=
+Controls the behavior of bleedingspree kicks.
+==Values==
+* '''0''': Disabled, just uses normal outlaw
+* '''1''': Kicks the player
+* '''2''': Moves the player to spectators
 =g_markDeconstructMode=
 Changes the behavior of Marked Deconstruct
 ==Values==
 * '''0''': Uses buildpoints to build structures, then deconns marked structures after there are no more Bp.
 * '''1''': Decons marked structures first to build new buildings.
-==Author==
-SlackerLinux85
-[http://code.google.com/p/cqvm/issues/detail?id=17 issue and patch file]
 
 =Other Cvars=
 ===[Rezyn_features Rezyn's QVM Cvars]===

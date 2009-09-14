@@ -1,18 +1,38 @@
-﻿#summary Features used by this qvm
+﻿﻿#summary Features used by this qvm
 
-<wiki:toc />
+=Automatic bleedingspree revert=
+Automatically reverts any damage done by a bleeding player, when bleedingspree is triggered
+ * Author: _Rezyn_
+ * Link: [http://code.google.com/p/cqvm/source/detail?r=28 commit]
+=Improvement of Allflags, addition of restriction flags=
+This makes the behavior of allflags consistent, adds support for . flags, and adds .NOVOTE and .NOCHAT
+ * Author: _Rezyn_
+ * Link: [http://code.google.com/p/cqvm/source/detail?r=27 commit]
+=Inactivity mode=
+Controls if a player is moved to spectators or dropped when inactive
+[Cvars#g_inactivityMode Cvar page]
+ * Author: _Rezyn_
+ * Link: [http://code.google.com/p/cqvm/source/detail?r=25 commit]
+=Bleeding Spree controls=
+Controls if the player is outlawed, kicked, or put on spectators
+[Cvars#g_bleedingSpreeKick Cvar page]
+ * Author: _Rezyn_
+ * Link: [http://code.google.com/p/cqvm/issues/detail?id=20 issue]
+=Nobuild=
+Allows an admin to define areas of the map that building is disabled in
+[Admin_commands#!nobuild More info]
+ * Author: _Rezyn_ and _Google_
+ * Link: [http://code.google.com/p/cqvm/issues/detail?id=21 issue]
 =Mark improvements=
 Allows for control over the behavior of Mark Decon
 
 [Cvars#g_markDeconstructMode]
-==Credentials==
  * Author: _Slacker_
  * Link: [http://code.google.com/p/cqvm/issues/detail?id=17 patch]
 =!invisible=
 Allows an admin to become invisible, not showing to other players
 
 [Admin Commands#!invisible]
-==Credentials==
  * Author: _Slacker_
  * Link: [http://code.google.com/p/cqvm/issues/detail?id=3 patch]
 =Ban modifications by level=
@@ -20,7 +40,6 @@ Prevents bans from being modified by admins of a level lower than that of the or
 
 All console bans are at level 0. This includes kicks
 This also adds the field blevel to Admin.dat ban entries
-==Credits==
  * Author: _Slacker_
  * Link: [http://code.google.com/p/cqvm/issues/detail?id=18 patch]
 =Jetpack Fuel=
@@ -29,7 +48,11 @@ This also adds the field blevel to Admin.dat ban entries
 
 =Other features=
 ==Cvars==
-A complete list of cvars is avalible at [Cvars]
+A list of cvars is avalible at [Cvars]
 
 ==Admin Commands==
-A complete list of admin commands is avalible at [Admin Commands]
+A  list of admin commands is avalible at [Admin_Commands]
+
+==Other==
+For a complete list of changes, please visit the repo change page
+[http://code.google.com/p/cqvm/source/list Repo change page]
