@@ -1,4 +1,5 @@
 ﻿#summary A list of all the admin commmands added to this QVM
+#labels Featured
 
 This is a list of commands that are unique to this qvm, or are different from other QVMs. It is in the order in which they are added. For all command info, run !help ingame 
 
