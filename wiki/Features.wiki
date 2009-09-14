@@ -1,4 +1,5 @@
 ﻿#summary Features used by this qvm
+#labels Featured
 =Bleeding spree spec durations=
 Integrates Mute/Spec duration with Bleeding spree spectator mode.
  * Author: _Paradox_
