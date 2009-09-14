@@ -1554,7 +1554,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
               G_admin_tklog_log( attacker, NULL, mod );
 
-              trap_SendConsoleCommand( EXEC_APPEND, va( "!putteam %d spectators\n", attacker - g_entities ) );
+              trap_SendConsoleCommand( EXEC_APPEND, va( "!putteam %d s %s\n", attacker - g_entities, g_adminTempSpec.string ) );
               attacker->client->pers.statscounters.spreebleeds = 0;
             }
             else if( attacker->client->pers.statscounters.spreebleeds > g_bleedingSpree.integer * 66 &&

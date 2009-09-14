@@ -1,8 +1,21 @@
 ﻿#summary List of Cvars added by this QVM
 For a full list of Cvars, please run `/cvarlist` in your server console.
-
+=g_adminTempMute=
+Defines the mute duration for mute votes
+==Values==
+Accepts any standard tremulous time values. Common ones are listed below
+ * *30*: 30 seconds
+ * *1m*: 1 minute
+ * *1h*: 1 hour
+=g_adminTempSpec=
+Defines the spectator duration for spec votes, as well as the spectator duration if [Cvars#g_bleedingSpreeKick g_bleedingSpreeKick] is set to mode 2
+==Values==
+Accepts any standard tremulous time values. Common ones are listed below
+ * *30*: 30 Seconds
+ * *1m*: 1 minute
+ * *1h*: 1 hour
 =g_inactivityMode=
-Controls behavior of automatic inactivity.
+Controls behavior of automatic inactivity actions.
 ==Values==
  * *0*: Default, player is dropped from server
  * *1*: Player is moved to spectators

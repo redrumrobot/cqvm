@@ -231,7 +231,7 @@ g_admin_cmd_t g_admin_cmds[ ] =
 
     {"mute", G_admin_mute, "mute",
       "mute a player",
-      "[^3name|slot#^7]"
+      "[^3name|slot#^7] (Duration)"
     },
     
     {"namelog", G_admin_namelog, "namelog",
@@ -271,7 +271,7 @@ g_admin_cmd_t g_admin_cmds[ ] =
 
     {"putteam", G_admin_putteam, "putteam",
       "move a player to a specified team",
-      "[^3name|slot#^7] [^3h|a|s^7]"
+      "[^3name|slot#^7] [^3h|a|s^7] (^3duration^7)"
     },
 
     {"readconfig", G_admin_readconfig, "readconfig",
@@ -3422,12 +3422,15 @@ qboolean G_admin_putteam( gentity_t *ent, int skiparg )
   gentity_t *vic;
   pTeam_t teamnum = PTE_NONE;
   char teamdesc[ 32 ] = {"spectators"};
+  char secs[ 7 ];
+  int seconds = 0;
+  qboolean useDuration = qfalse;
 
   G_SayArgv( 1 + skiparg, name, sizeof( name ) );
   G_SayArgv( 2 + skiparg, team, sizeof( team ) );
   if( G_SayArgc() < 3 + skiparg )
   {
-    ADMP( "^3!putteam: ^7usage: !putteam [name] [h|a|s]\n" );
+    ADMP( "^3!putteam: ^7usage: !putteam [name] [h|a|s] (duration)\n" );
     return qfalse;
   }
 
@@ -3468,13 +3471,34 @@ qboolean G_admin_putteam( gentity_t *ent, int skiparg )
     ADMP( va( "^3!putteam: ^7unknown team %c\n", team[ 0 ] ) );
     return qfalse;
   }
-  if( vic->client->pers.teamSelection == teamnum )
+  //duration code
+  if( G_SayArgc() > 3 + skiparg ) {
+    //can only lock players in spectator
+    if ( teamnum != PTE_NONE )
+    {
+      ADMP( "^3!putteam: ^7You can only lock a player into the spectators team\n" );
+      return qfalse;
+    }
+    G_SayArgv( 3 + skiparg, secs, sizeof( secs ) );
+    seconds = G_admin_parse_time( secs );
+    useDuration = qtrue;
+  }
+
+  if( vic->client->pers.teamSelection == teamnum && teamnum != PTE_NONE )
+  {
+    ADMP( va( "^3!putteam: ^7%s ^7is already on the %s team\n", vic->client->pers.netname, teamdesc ) );
     return qfalse;
+  }
+
+  if( useDuration == qtrue && seconds > 0 ) {
+    vic->client->pers.specExpires = level.time + ( seconds * 1000 );
+  }
   G_ChangeTeam( vic, teamnum );
 
-  AP( va( "print \"^3!putteam: ^7%s^7 put %s^7 on to the %s team\n\"",
+  AP( va( "print \"^3!putteam: ^7%s^7 put %s^7 on to the %s team%s\n\"",
           ( ent ) ? G_admin_adminPrintName( ent ) : "console",
-          vic->client->pers.netname, teamdesc ) );
+          vic->client->pers.netname, teamdesc,
+          ( seconds ) ? va( " for %i seconds", seconds ) : "" ) );
   return qtrue;
 }
 
@@ -4332,56 +4356,72 @@ qboolean G_admin_mute( gentity_t *ent, int skiparg )
   char name[ MAX_NAME_LENGTH ], err[ MAX_STRING_CHARS ];
   char command[ MAX_ADMIN_CMD_LEN ], *cmd;
   gentity_t *vic;
+  char secs[ 7 ];
+  qboolean usageDuration = qfalse;
+  int seconds = 0;
 
   G_SayArgv( skiparg, command, sizeof( command ) );
   cmd = command;
+
   if( cmd && *cmd == '!' )
     cmd++;
+
   if( G_SayArgc() < 2 + skiparg )
   {
-    ADMP( va( "^3!%s: ^7usage: !%s [name|slot#]\n", cmd, cmd ) );
+    ADMP( va( "^3!%s: ^7usage: !%s [name|slot#] (duration)\n", cmd, cmd ) );
     return qfalse;
   }
+
   G_SayArgv( 1 + skiparg, name, sizeof( name ) );
+
   if( G_ClientNumbersFromString( name, pids ) != 1 )
   {
     G_MatchOnePlayer( pids, err, sizeof( err ) );
     ADMP( va( "^3!%s: ^7%s\n", cmd, err ) );
     return qfalse;
   }
+
   if( !admin_higher( ent, &g_entities[ pids[ 0 ] ] ) )
   {
     ADMP( va( "^3!%s: ^7sorry, but your intended victim has a higher admin"
         " level than you\n", cmd ) );
     return qfalse;
   }
+
   vic = &g_entities[ pids[ 0 ] ];
-  if( vic->client->pers.muted == qtrue )
+  if( !Q_stricmp( cmd, "unmute" ) )
   {
-    if( !Q_stricmp( cmd, "mute" ) )
-    {
-      ADMP( "^3!mute: ^7player is already muted\n" );
-      return qtrue;
-    }
-    vic->client->pers.muted = qfalse;
-    CPx( pids[ 0 ], "cp \"^1You have been unmuted\"" );
-    AP( va( "print \"^3!unmute: ^7%s^7 has been unmuted by %s\n\"",
-            vic->client->pers.netname,
-            ( ent ) ? G_admin_adminPrintName( ent ) : "console" ) );
-  }
-  else
-  {
-    if( !Q_stricmp( cmd, "unmute" ) )
+    if( vic->client->pers.muted == qfalse )
     {
       ADMP( "^3!unmute: ^7player is not currently muted\n" );
       return qtrue;
     }
+
+    vic->client->pers.muteExpires = 0;
+    vic->client->pers.muted = qfalse;
+
+    CPx( pids[ 0 ], "cp \"^1You have been unmuted\"" );
+    AP( va( "print \"^3!unmute: ^7%s^7 has been unmuted by %s\n\"",
+        vic->client->pers.netname,
+        ( ent ) ? G_admin_adminPrintName( ent ) : "console" ) );
+  } else {
+    // Duration
+    if( G_SayArgc() > 2 + skiparg )
+    {
+      G_SayArgv( 2 + skiparg, secs, sizeof( secs ) );
+      seconds = G_admin_parse_time( secs );
+      vic->client->pers.muteExpires = level.time + ( seconds * 1000 );
+    }
+
     vic->client->pers.muted = qtrue;
+
     CPx( pids[ 0 ], "cp \"^1You've been muted\"" );
-    AP( va( "print \"^3!mute: ^7%s^7 has been muted by ^7%s\n\"",
-            vic->client->pers.netname,
-            ( ent ) ? G_admin_adminPrintName( ent ) : "console" ) );
+    AP( va( "print \"^3!mute: ^7%s^7 has been muted by ^7%s%s\n\"",
+        vic->client->pers.netname,
+        ( ent ) ? G_admin_adminPrintName( ent ) : "console",
+          ( seconds ) ? va( " ^7for %i seconds", seconds ) : "" ) );
   }
+
   return qtrue;
 }
 
