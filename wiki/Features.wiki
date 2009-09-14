@@ -1,4 +1,4 @@
-﻿﻿#summary Features used by this qvm
+﻿#summary Features used by this qvm
 
 =Automatic bleedingspree revert=
 Automatically reverts any damage done by a bleeding player, when bleedingspree is triggered
