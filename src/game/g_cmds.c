@@ -838,6 +838,12 @@ void Cmd_Team_f( gentity_t *ent )
       g_maxGameClients.integer ) );
     return;
   }
+  else if ( ent->client->pers.specExpires > level.time )
+  {
+  trap_SendServerCommand( ent-g_entities, va( "print \"You can't join a team yet. Expires in %d seconds.\n\"",
+                          ( ent->client->pers.specExpires - level.time ) / 1000 ) );
+  return;
+  }
   else if( !Q_stricmpn( s, "alien", 5 ) )
   {
     if( g_forceAutoSelect.integer && !G_admin_permission(ent, ADMF_FORCETEAMCHANGE) )
@@ -1801,7 +1807,7 @@ void Cmd_CallVote_f( gentity_t *ent )
     return;
   }
   
-  if( ent->client->pers.muted )
+  if( G_IsMuted( ent->client ) )
   {
     trap_SendServerCommand( ent - g_entities,
       "print \"You are muted and cannot call votes\n\"" );
@@ -1861,6 +1867,7 @@ void Cmd_CallVote_f( gentity_t *ent )
 
   // detect clientNum for partial name match votes
   if( !Q_stricmp( arg1, "kick" ) ||
+    !Q_stricmp( arg1, "spec" ) ||
     !Q_stricmp( arg1, "mute" ) ||
     !Q_stricmp( arg1, "unmute" ) )
   {
@@ -1961,9 +1968,20 @@ void Cmd_CallVote_f( gentity_t *ent )
 
     level.votePassThreshold = g_kickVotesPercent.integer;
   }
+  else if( !Q_stricmp( arg1, "spec" ) )
+  {
+    if( G_admin_permission( &g_entities[ clientNum ], ADMF_IMMUNITY ) )
+    {
+          trap_SendServerCommand( ent-g_entities, "print \"callvote: admin is immune from vote spec\n\"" );
+          return;
+    }
+    Com_sprintf( level.voteString, sizeof( level.voteString ), "!putteam %i s %s", clientNum, g_adminTempSpec.string );
+    Com_sprintf( level.voteDisplayString, sizeof( level.voteDisplayString ), "Spec player \'%s\'", name );
+
+  }
   else if( !Q_stricmp( arg1, "mute" ) )
   {
-    if( level.clients[ clientNum ].pers.muted )
+    if( G_IsMuted( &level.clients[ clientNum ] ) )
     {
       trap_SendServerCommand( ent-g_entities,
         "print \"callvote: player is already muted\n\"" );
@@ -1979,13 +1997,13 @@ void Cmd_CallVote_f( gentity_t *ent )
       return;
     }
     Com_sprintf( level.voteString, sizeof( level.voteString ),
-      "!mute %i", clientNum );
+      "!mute %i %s", clientNum, g_adminTempMute.string );
     Com_sprintf( level.voteDisplayString, sizeof( level.voteDisplayString ),
       "Mute player \'%s\'", name );
   }
   else if( !Q_stricmp( arg1, "unmute" ) )
   {
-    if( !level.clients[ clientNum ].pers.muted )
+    if( !G_IsMuted( &level.clients[ clientNum ] ) )
     {
       trap_SendServerCommand( ent-g_entities,
         "print \"callvote: player is not currently muted\n\"" );
@@ -2287,7 +2305,7 @@ void Cmd_CallVote_f( gentity_t *ent )
     {
       trap_SendServerCommand( ent-g_entities, "print \"Invalid vote string\n\"" );
       trap_SendServerCommand( ent-g_entities, "print \"Valid vote commands are: "
-        "map, map_restart, nextmap, layout, draw, extend, kick, mute, unmute, poll, and sudden_death\n" );
+        "map, map_restart, nextmap, layout, draw, extend, kick, spec, mute, unmute, poll, and sudden_death\n" );
       if( customVoteKeys[ 0 ] != '\0' )
         trap_SendServerCommand( ent-g_entities,
           va( "print \"Additional custom vote commands: %s\n\"", customVoteKeys ) );
@@ -2472,7 +2490,7 @@ void Cmd_CallTeamVote_f( gentity_t *ent )
     return;
   }
   
-  if( ent->client->pers.muted )
+  if( G_IsMuted( ent->client ) )
   {
     trap_SendServerCommand( ent - g_entities,
       "print \"You are muted and cannot call teamvotes\n\"" );
@@ -4459,7 +4477,7 @@ void Cmd_TeamStatus_f( gentity_t *ent )
     return;
   }
 
-  if( ent->client->pers.muted )
+  if( G_IsMuted( ent->client ) )
   {
     trap_SendServerCommand( ent - g_entities,
       "print \"You are muted and cannot use message commands.\n\"" );
@@ -5412,7 +5430,7 @@ void ClientCommand( int clientNum )
     return;
   }
 
-  if( cmds[ i ].cmdFlags & CMD_MESSAGE && ent->client->pers.muted )
+  if( cmds[ i ].cmdFlags & CMD_MESSAGE && G_IsMuted( ent->client ) )
   {
     trap_SendServerCommand( clientNum,
       "print \"You are muted and cannot use message commands.\n\"" );
@@ -5855,7 +5873,7 @@ void G_PrivateMessage( gentity_t *ent )
  }
 
 void G_CP( gentity_t *ent )
- { 
+{
    int i;
    char buffer[MAX_STRING_CHARS];
    char prefixes[MAX_STRING_CHARS] = "";
@@ -5941,5 +5959,30 @@ void G_CP( gentity_t *ent )
     }
 
      G_Printf( "cp: %s\n", ConcatArgs( 1 ) );
- }
+}
 
+/*
+=================
+G_IsMuted
+
+Check if a player is muted
+=================
+*/
+qboolean G_IsMuted( gclient_t *client )
+{
+  qboolean muteState = qfalse;
+
+  //check if mute has expired
+  if( client->pers.muteExpires ) {
+    if( client->pers.muteExpires < level.time )
+    {
+      client->pers.muted = qfalse;
+      client->pers.muteExpires = 0;
+    }
+  }
+
+  if( client->pers.muted )
+    muteState = qtrue;
+
+  return muteState;
+}

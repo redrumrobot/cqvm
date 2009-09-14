@@ -184,9 +184,11 @@ vmCvar_t  g_adminLog;
 vmCvar_t  g_adminParseSay;
 vmCvar_t  g_adminSayFilter;
 vmCvar_t  g_adminNameProtect;
+vmCvar_t  g_adminTempMute;
 vmCvar_t  g_adminTempBan;
 vmCvar_t  g_adminBanRepeatKicks;
 vmCvar_t  g_adminMaxBan;
+vmCvar_t  g_adminTempSpec;
 vmCvar_t  g_adminMapLog;
 vmCvar_t  g_adminRegisterLevel;
 vmCvar_t  g_adminRegisterAdminPass;
@@ -449,9 +451,11 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_adminParseSay, "g_adminParseSay", "1", CVAR_ARCHIVE, 0, qfalse  },
   { &g_adminSayFilter, "g_adminSayFilter", "0", CVAR_ARCHIVE, 0, qfalse  },
   { &g_adminNameProtect, "g_adminNameProtect", "1", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_adminTempMute, "g_adminTempMute", "5m", CVAR_ARCHIVE, 0, qfalse },
   { &g_adminTempBan, "g_adminTempBan", "2m", CVAR_ARCHIVE, 0, qfalse  },
   { &g_adminBanRepeatKicks, "g_adminBanRepeatKicks", "0", CVAR_ARCHIVE, 0, qfalse  },
   { &g_adminMaxBan, "g_adminMaxBan", "2w", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_adminTempSpec, "g_adminTempSpec", "2m", CVAR_ARCHIVE, 0, qfalse  },
   { &g_adminMapLog, "g_adminMapLog", "", CVAR_ROM, 0, qfalse  },
   { &g_adminRegisterLevel, "g_adminRegisterLevel", "1", CVAR_ARCHIVE, 0, qfalse  },
   { &g_adminRegisterAdminPass, "g_adminRegisterAdminPass", "", CVAR_ARCHIVE, 0, qfalse  },
