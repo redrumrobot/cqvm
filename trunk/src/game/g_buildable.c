@@ -3166,7 +3166,7 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
   qboolean  unique = BG_FindUniqueTestForBuildable( buildable );
   int       remainingBP, remainingSpawns;
   int               team;
-  int               buildPoints;
+  int               buildPoints, buildpointsneeded;
   qboolean          collision = qfalse;
   int               collisionCount = 0;
   qboolean          repeaterInRange = qfalse;
@@ -3178,7 +3178,7 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
 
   level.numBuildablesForRemoval = 0;
 
-  buildPoints = BG_FindBuildPointsForBuildable( buildable );
+  buildPoints = buildpointsneeded = BG_FindBuildPointsForBuildable( buildable );
   team = BG_FindTeamForBuildable( buildable );
   if( team == BIT_ALIENS )
   {
@@ -3218,8 +3218,11 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
     return IBE_NONE;
   }
 
+  buildpointsneeded -= remainingBP;
+
   // Set buildPoints to the number extra that are required
-  buildPoints -= remainingBP;
+  if( !g_markDeconstructMode.integer )
+    buildPoints -= remainingBP;
 
   // Build a list of buildable entities
   for( i = MAX_CLIENTS, ent = g_entities + i; i < level.num_entities; i++, ent++ )
@@ -3286,7 +3289,7 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
   }
 
   // We still need build points, but have no candidates for removal
-  if( buildPoints > 0 && numBuildables == 0 )
+  if( buildpointsneeded > 0 && numBuildables == 0 )
     return bpError;
 
   // Collided with something we can't remove
@@ -3321,7 +3324,7 @@ static itemBuildError_t G_SufficientBPAvailable( buildable_t     buildable,
     return IBE_NORMAL;
 
   // Not enough points yielded
-  if( pointsYielded < buildPoints )
+  if( pointsYielded < buildpointsneeded )
     return bpError;
 
   return IBE_NONE;

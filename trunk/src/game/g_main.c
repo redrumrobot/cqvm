@@ -158,6 +158,7 @@ vmCvar_t  g_buildPointsRecoverRate;
 vmCvar_t  g_dynamicBuildPoints;
 
 vmCvar_t  g_markDeconstruct;
+vmCvar_t  g_markDeconstructMode;
 vmCvar_t  g_deconDead;
 
 vmCvar_t  g_debugMapRotation;
@@ -426,7 +427,8 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_floodMaxDemerits, "g_floodMaxDemerits", "5000", CVAR_ARCHIVE, 0, qfalse  },
   { &g_floodMinTime, "g_floodMinTime", "2000", CVAR_ARCHIVE, 0, qfalse  },
 
-  { &g_markDeconstruct, "g_markDeconstruct", "0", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_markDeconstruct, "g_markDeconstruct", "0", CVAR_ARCHIVE, 0, qtrue  },
+  { &g_markDeconstructMode, "g_markDeconstructMode", "0", CVAR_ARCHIVE, 0, qfalse  },
   { &g_deconDead, "g_deconDead", "0", CVAR_ARCHIVE, 0, qtrue  },
 
   { &g_debugMapRotation, "g_debugMapRotation", "0", 0, 0, qfalse  },
@@ -2302,6 +2304,10 @@ void G_SendGameStat( pTeam_t team )
     int ping;
 
     cl = &level.clients[ level.sortedClients[ i ] ];
+
+    // Ignore invisible players
+    if ( cl->sess.invisible == qtrue )
+      continue;
 
     if( cl->pers.connected == CON_CONNECTING )
       ping = -1;

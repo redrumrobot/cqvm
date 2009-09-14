@@ -1,9 +1,36 @@
-﻿#summary Features used by this qvm
+﻿﻿﻿#summary Features used by this qvm
 #labels Featured,Phase-Implementation
 
-Jetpack Fuel
+<wiki:toc />
+=Mark improvements=
+Allows for control over the behavior of Mark Decon
+
+[Cvars#g_markDeconstructMode]
+==Credentials==
+ * Author: _Slacker_
+ * Link: [http://code.google.com/p/cqvm/issues/detail?id=17 patch]
+=!invisible=
+Allows an admin to become invisible, not showing to other players
+
+[Admin Commands#!invisible]
+==Credentials==
+ * Author: _Slacker_
+ * Link: [http://code.google.com/p/cqvm/issues/detail?id=3 patch]
+=Ban modifications by level=
+Prevents bans from being modified by admins of a level lower than that of the original banner.
+
+All console bans are at level 0. This includes kicks
+This also adds the field blevel to Admin.dat ban entries
+==Credits==
+ * Author: _Slacker_
+ * Link: [http://code.google.com/p/cqvm/issues/detail?id=18 patch]
+=Jetpack Fuel=
  * Author: _Slacker_
  * Link: [http://code.google.com/p/cqvm/issues/detail?id=7 patch]
 
+=Other features=
 ==Cvars==
 A complete list of cvars is avalible at [Cvars]
+
+==Admin Commands==
+A complete list of admin commands is avalible at [Admin Commands]
