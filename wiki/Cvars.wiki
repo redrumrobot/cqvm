@@ -1,4 +1,4 @@
-﻿﻿#summary List of Cvars added by this QVM
+﻿#summary List of Cvars added by this QVM
 For a full list of Cvars, please run `/cvarlist` in your server console. These are added in the order they were commited
 <wiki:toc />
 =g_markDeconstructMode=
