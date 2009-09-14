@@ -33,7 +33,7 @@ Allows for control over the behavior of Mark Decon
 Allows an admin to become invisible, not showing to other players
 
 [Admin Commands#!invisible]
- * Author: _Slacker_
+ * Author: _Critux_, _Slacker_ and _Tori_
  * Link: [http://code.google.com/p/cqvm/issues/detail?id=3 patch]
 =Ban modifications by level=
 Prevents bans from being modified by admins of a level lower than that of the original banner.
