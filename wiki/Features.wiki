@@ -6,7 +6,7 @@ Integrates Mute/Spec duration with Bleeding spree spectator mode.
  * Link: [http://code.google.com/p/cqvm/source/detail?r=39 commit]
 =Mute and Spec durations=
 Adds times to the `!mute` and putteam spec commands, as well as adding times to votes.
- * Author: _Slacker_
+ * Author: _Critux_ and _Slacker_
  * Link: [http://code.google.com/p/cqvm/issues/detail?id=24 issue]
 =Automatic bleedingspree revert=
 Automatically reverts any damage done by a bleeding player, when bleedingspree is triggered
