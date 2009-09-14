@@ -143,6 +143,7 @@ typedef struct g_admin_ban
   int expires;
   int suspend;
   char banner[ MAX_NAME_LENGTH ];
+  int  bannerlevel;
 }
 g_admin_ban_t;
 
@@ -272,6 +273,7 @@ qboolean G_admin_flaglist( gentity_t *ent, int skiparg );
 qboolean G_admin_flag( gentity_t *ent, int skiparg );
 qboolean G_admin_immunity( gentity_t *ent, int skiparg );
 qboolean G_admin_cp( gentity_t *ent, int skiparg );
+qboolean G_admin_invisible( gentity_t *ent, int skiparg );
 
 qboolean G_admin_slap( gentity_t *ent, int skiparg );
 qboolean G_admin_drop( gentity_t *ent, int skiparg );

@@ -304,6 +304,7 @@ typedef struct
   int               spectatorClient;  // for chasecam and follow mode
   int               wins, losses;     // tournament stats
   qboolean          teamLeader;       // true when this client is a team leader
+  qboolean          invisible;       // for being invisible on the server - ghosts!
   clientList_t      ignoreList;
 } clientSession_t;
 
@@ -1419,6 +1420,7 @@ extern  vmCvar_t  g_buildPointsRecoverRate;
 extern  vmCvar_t  g_dynamicBuildPoints;
 
 extern  vmCvar_t  g_markDeconstruct;
+extern  vmCvar_t  g_markDeconstructMode;
 extern  vmCvar_t  g_deconDead;
 
 extern  vmCvar_t  g_debugMapRotation;

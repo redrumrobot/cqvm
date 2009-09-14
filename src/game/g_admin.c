@@ -169,6 +169,11 @@ g_admin_cmd_t g_admin_cmds[ ] =
       "[^3+|-^7](^5slot#^7)"
     },
 
+    {"invisible", G_admin_invisible, "invisible",
+    "hides a player so they cannot be seen in playerlists",
+    "[^3+|-^7](^5slot#^7)"
+    },
+
     {"kick", G_admin_kick, "kick",
       "kick a player with an optional reason",
       "[^3name|slot#^7] (^5reason^7)"
@@ -713,6 +718,8 @@ static void admin_writeconfig( void )
     }
     trap_FS_Write( "banner  = ", 10, f );
     admin_writeconfig_string( g_admin_bans[ i ]->banner, f );
+    trap_FS_Write( "blevel  = ", 10, f );
+    admin_writeconfig_int( g_admin_bans[ i ]->bannerlevel, f );
     trap_FS_Write( "\n", 1, f );
   }
   for( i = 0; i < MAX_ADMIN_COMMANDS && g_admin_commands[ i ]; i++ )
@@ -1083,7 +1090,7 @@ static void admin_default_levels( void )
     sizeof( l->name ) );
   Q_strncpyz( g_admin_levels[ 4 ]->flags, 
     "listplayers admintest help specme time putteam spec999 kick mute showbans "
-    "ban namelog warn denybuild ADMINCHAT SEESFULLLISTPLAYERS",
+    "ban namelog warn denybuild invisible ADMINCHAT SEESFULLLISTPLAYERS",
     sizeof( l->flags ) );
 
   Q_strncpyz( g_admin_levels[ 5 ]->name, "^1Server Operator",
@@ -1908,6 +1915,10 @@ qboolean G_admin_readconfig( gentity_t *ent, int skiparg )
       {
         admin_readconfig_string( &cnf, b->banner, sizeof( b->banner ) );
       }
+      else if( !Q_stricmp( t, "blevel" ) )
+      {
+        admin_readconfig_int( &cnf, &b->bannerlevel );
+      }
       else
       {
         ADMP( va( "^3!readconfig: ^7[ban] parse error near %s on line %d\n",
@@ -1975,6 +1986,7 @@ qboolean G_admin_readconfig( gentity_t *ent, int skiparg )
       b->expires = 0;
       b->suspend = 0;
       *b->reason = '\0';
+      b->bannerlevel = 0;
       ban_open = qtrue;
     }
     else if( !Q_stricmp( t, "[command]" ) )
@@ -2406,6 +2418,11 @@ static qboolean admin_create_ban( gentity_t *ent,
 
   Q_strncpyz( b->banner, G_admin_get_adminname( ent ), sizeof( b->banner ) );
 
+  if( ent )
+    b->bannerlevel = G_admin_level( ent );
+  else
+    b->bannerlevel = 0;
+
   if( !seconds )
     b->expires = 0;
   else
@@ -2819,6 +2836,11 @@ qboolean G_admin_adjustban( gentity_t *ent, int skiparg )
     ADMP( "^3!adjustban: ^7you cannot modify permanent bans\n" );
     return qfalse;
   }
+  if( g_admin_bans[ bnum - 1 ]->bannerlevel > G_admin_level( ent ) )
+  {
+    ADMP( "^3!adjustban: ^7you cannot modify Bans made by admins higher than you\n" );
+    return qfalse;
+  }
   if( g_adminMaxBan.integer &&
       !G_admin_permission( ent, ADMF_CAN_PERM_BAN ) &&
       g_admin_bans[ bnum - 1 ]->expires - time > G_admin_parse_time( g_adminMaxBan.string ) )
@@ -2889,9 +2911,12 @@ qboolean G_admin_adjustban( gentity_t *ent, int skiparg )
     ( length >= 0 && *reason ) ? ", " : "",
     ( *reason ) ? "reason: " : "",
     reason ) );
-  if( ent )
+  if( ent ) {
     Q_strncpyz( g_admin_bans[ bnum - 1 ]->banner, G_admin_get_adminname( ent ),
       sizeof( g_admin_bans[ bnum - 1 ]->banner ) );
+    g_admin_bans[ bnum - 1 ]->bannerlevel = G_admin_level( ent );
+  }
+
   if( g_admin.string[ 0 ] )
     admin_writeconfig();
   return qtrue;
@@ -2919,6 +2944,11 @@ qboolean G_admin_subnetban( gentity_t *ent, int skiparg )
   if( bnum < 1 || bnum > MAX_ADMIN_BANS || !g_admin_bans[ bnum - 1] )
   {
     ADMP( "^3!subnetban: ^7invalid ban#\n" );
+    return qfalse;
+  }
+  if( g_admin_bans[ bnum - 1 ]->bannerlevel > G_admin_level( ent ) )
+  {
+    ADMP( "^3!subnetban: ^7you cannot subnetban Bans on bans made by admins higher than you\n" );
     return qfalse;
   }
 
@@ -3033,6 +3063,11 @@ qboolean G_admin_suspendban( gentity_t *ent, int skiparg )
     ADMP( "^3!suspendban: ^7invalid ban #\n" );
     return qfalse;
   }
+  if( g_admin_bans[ bnum - 1 ]->bannerlevel > G_admin_level( ent ) )
+  {
+    ADMP( "^3!suspendban: ^7you cannot suspend Bans made by admins higher than you\n" );
+    return qfalse;
+  }
 
   arg = G_SayConcatArgs( 2 + skiparg );
   length = G_admin_parse_time( arg );
@@ -3103,6 +3138,11 @@ qboolean G_admin_unban( gentity_t *ent, int skiparg )
       !G_admin_permission( ent, ADMF_CAN_PERM_BAN ) )
   {
     ADMP( "^3!unban: ^7you cannot remove permanent bans\n" );
+    return qfalse;
+  }
+  if( g_admin_bans[ bnum - 1 ]->bannerlevel > G_admin_level( ent ) )
+  {
+    ADMP( "^3!unban: ^7you cannot Remove Bans made by admins higher than you\n" );
     return qfalse;
   }
   if( g_adminMaxBan.integer &&
@@ -3404,6 +3444,13 @@ qboolean G_admin_putteam( gentity_t *ent, int skiparg )
     return qfalse;
   }
   vic = &g_entities[ pids[ 0 ] ];
+
+  if ( vic->client->sess.invisible == qtrue )
+  {
+    ADMP( "^3!putteam: ^7invisible players cannot join a team\n" );
+    return qfalse;
+  }
+
   switch( team[ 0 ] )
   {
   case 'a':
@@ -4799,6 +4846,7 @@ qboolean G_admin_listlayouts( gentity_t *ent, int skiparg )
 qboolean G_admin_listplayers( gentity_t *ent, int skiparg )
 {
   int i, j;
+  int invisiblePlayers = 0;
   gclient_t *p;
   char c[ 3 ], t[ 2 ]; // color and team letter
   char n[ MAX_NAME_LENGTH ] = {""};
@@ -4812,12 +4860,24 @@ qboolean G_admin_listplayers( gentity_t *ent, int skiparg )
   char lname_fmt[ 5 ];
   char karma[ 8 ];
 
+  //get amount of invisible players
+  for( i = 0; i < level.maxclients; i++ ) {
+    p = &level.clients[ i ];
+    if ( p->sess.invisible == qtrue )
+      invisiblePlayers++;
+  }
+
   ADMBP_begin();
   ADMBP( va( "^3!listplayers^7: %d players connected:\n",
-    level.numConnectedClients ) );
+    level.numConnectedClients - invisiblePlayers ) );
   for( i = 0; i < level.maxclients; i++ )
   {
     p = &level.clients[ i ];
+
+    // Ignore invisible players
+    if ( p->sess.invisible == qtrue )
+      continue;
+
     Q_strncpyz( t, "S", sizeof( t ) );
     Q_strncpyz( c, S_COLOR_YELLOW, sizeof( c ) );
     if( p->pers.teamSelection == PTE_HUMANS )
@@ -5172,6 +5232,7 @@ qboolean G_admin_showbans( gentity_t *ent, int skiparg )
   int j;
   char n1[ MAX_NAME_LENGTH * 2 ] = {""};
   char n2[ MAX_NAME_LENGTH * 2 ] = {""};
+  int bannerslevel = 0;
   qboolean numeric = qtrue;
   char *ip_match = NULL;
   int ip_match_len = 0;
@@ -5369,8 +5430,9 @@ qboolean G_admin_showbans( gentity_t *ent, int skiparg )
     Com_sprintf( banner_fmt, sizeof( banner_fmt ), "%%-%is",
       ( max_banner + strlen( g_admin_bans[ i ]->banner ) - strlen( n2 ) ) );
     Com_sprintf( n2, sizeof( n2 ), banner_fmt, g_admin_bans[ i ]->banner ); 
+    bannerslevel = g_admin_bans[ i ]->bannerlevel;
 
-    ADMBP( va( "^%i%4i ^7%s^%i %-15s %-8s ^7%s^%i %-10s\n%s^5     \\__ %s\n",
+    ADMBP( va( "^%i%4i ^7%s^%i %-15s %-8s ^7%s^7 %2i^%i %-10s\n%s^5     \\__ %s\n",
              line_color,
              ( i + 1 ),
              n1,
@@ -5378,6 +5440,7 @@ qboolean G_admin_showbans( gentity_t *ent, int skiparg )
              g_admin_bans[ i ]->ip,
              date,
              n2,
+             bannerslevel,
              line_color,
              duration,
              suspended,
@@ -8037,6 +8100,29 @@ qboolean G_admin_nobuild(gentity_t *ent, int skiparg )
     return qfalse;
   }
 
+  return qtrue;
+}
+
+qboolean G_admin_invisible( gentity_t *ent, int skiparg )
+{
+  if ( ent->client->sess.invisible != qtrue )
+  {
+    // Make the player invisible
+    G_ChangeTeam( ent, PTE_NONE );
+    ent->client->sess.invisible = qtrue;
+    ClientUserinfoChanged( ent->client->pers.connection->clientNum, qfalse );
+    G_admin_namelog_update( ent->client, qtrue );
+    trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " disconnected\n\"", ent->client->pers.netname ) );
+  }
+  else
+  {
+    // Make the player visible
+    ent->client->sess.invisible = qfalse;
+    ClientUserinfoChanged( ent->client->pers.connection->clientNum, qfalse );
+    G_admin_namelog_update( ent->client, qfalse );
+    trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " connected\n\"", ent->client->pers.netname ) );
+    trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " entered the game\n\"", ent->client->pers.netname ) );
+  }
   return qtrue;
 }
 
