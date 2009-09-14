@@ -9,14 +9,14 @@ Controls behavior of automatic inactivity.
 =g_bleedingSpreeKick=
 Controls the behavior of bleedingspree kicks.
 ==Values==
-* '''0''': Disabled, just uses normal outlaw
-* '''1''': Kicks the player
-* '''2''': Moves the player to spectators
+ * '''0''': Disabled, just uses normal outlaw
+ * '''1''': Kicks the player
+ * '''2''': Moves the player to spectators
 =g_markDeconstructMode=
 Changes the behavior of Marked Deconstruct
 ==Values==
-* '''0''': Uses buildpoints to build structures, then deconns marked structures after there are no more Bp.
-* '''1''': Decons marked structures first to build new buildings.
+ * '''0''': Uses buildpoints to build structures, then deconns marked structures after there are no more Bp.
+ * '''1''': Decons marked structures first to build new buildings.
 
 =Other Cvars=
 ===[Rezyn_features Rezyn's QVM Cvars]===
