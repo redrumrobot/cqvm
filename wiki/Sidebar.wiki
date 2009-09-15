@@ -2,5 +2,5 @@
 
  * [Features Features/Credits]
  * Documentation
-  * [Admin_commands Admin commands]
+  * [Admin_Commands Admin commands]
   * [Cvars]
