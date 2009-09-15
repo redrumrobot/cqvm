@@ -1,0 +1,6 @@
+#summary The sidebar, as shown on all pages.
+
+ * [Features Features/Credits]
+ * Documentation
+  * [Admin_commands Admin commands]
+  * [Cvars]
