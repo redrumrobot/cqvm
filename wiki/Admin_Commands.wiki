@@ -29,12 +29,9 @@ Run in-game help for more info
 =!invisible=
 This command makes you appear to disconnect from the server, and removes you from the player list. It is useful if you want to spectate abusive admins without their knowledge, or just monitor your server while not appearing there
 
-Players with the `SEESFULLLISTPLAYERS` flag still see invisible players
-
 ==Syntax==
 `!invisible [+|-] (slot #)`
 ==Flags==
  * `invisible`: Allows an admin to use the invisible command
  ** '''Default level''': 4
- * `SEESFULLLISTPLAYERS`: Allows an admin to see every player that is connected to the server, including invisible ones
 ** '''Default level''': 4
