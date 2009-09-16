@@ -12,7 +12,7 @@ Standard mute command, but with added durations now, like kick.
 =!putteam=
 Standard putteam command, but with support for spectator durations
 ==Syntax==
-`!putteam [name] [a|h|s] (duration)
+`!putteam [name] [a|h|s] (duration)`
 ==Flags==
  * `putteam`: Controls if a player can use the putteam command
 =!nobuild=
