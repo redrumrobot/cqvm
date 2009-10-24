@@ -1,5 +1,4 @@
-﻿﻿#summary List of Cvars added by this QVM
-#labels Featured
+﻿#summary List of Cvars added by this QVM
 For a full list of Cvars, please run `/cvarlist` in your server console.
 =g_instantBuild=
 Allows for instant building, like devmap, at any time
