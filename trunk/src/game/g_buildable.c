@@ -3736,7 +3736,7 @@ static gentity_t *G_Build( gentity_t *builder, buildable_t buildable, vec3_t ori
   built->killedBy = ENTITYNUM_NONE;
 
   // build instantly in cheat mode
-  if( builder->client && g_cheats.integer )
+  if( builder->client && g_cheats.integer || g_instantBuild.integer )
   {
     built->health = BG_FindHealthForBuildable( buildable );
     built->buildTime = built->s.time =

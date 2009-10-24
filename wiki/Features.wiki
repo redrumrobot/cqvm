@@ -1,5 +1,11 @@
-﻿﻿﻿#summary Features used by this qvm
+﻿﻿﻿﻿#summary Features used by this qvm
 #labels Featured
+=InstantBuild=
+Allows for instantbuilding at ANY time.
+
+[Cvars#g_instantBuild]
+ * Author: _Paradox_
+ * Link: [http://code.google.com/p/cqvm/source/detail?r=51 commit]
 =Restore given states on reconnect=
 Automatically restores players state (mute, denybuild, etc) on reconnect. Ends mute evasions.
  * Author: _Slacker_ and _Tori_

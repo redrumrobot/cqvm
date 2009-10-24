@@ -1,6 +1,12 @@
-﻿#summary List of Cvars added by this QVM
+﻿﻿#summary List of Cvars added by this QVM
 #labels Featured
 For a full list of Cvars, please run `/cvarlist` in your server console.
+=g_instantBuild=
+Allows for instant building, like devmap, at any time
+==Values==
+Accepts any standard boolean value
+ * *0*: Off
+ * *1*: on
 =g_adminTempMute=
 Defines the mute duration for mute votes
 ==Values==
