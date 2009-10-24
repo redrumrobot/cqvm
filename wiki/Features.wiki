@@ -1,5 +1,6 @@
-﻿﻿﻿﻿#summary Features used by this qvm
+﻿#summary Features used by this qvm
 #labels Featured
+
 =InstantBuild=
 Allows for instantbuilding at ANY time.
 
