@@ -1,7 +1,6 @@
 ﻿#summary Features used by this qvm
 #labels Featured
-
-=InstantBuild=
+=Instant Build=
 Allows for instantbuilding at ANY time.
 
 [Cvars#g_instantBuild]
