@@ -1,6 +1,11 @@
 ﻿#summary List of Cvars added by this QVM
 #labels Featured
 For a full list of Cvars, please run `/cvarlist` in your server console.
+==g_sayAreaRange=
+Defines the range of say_area.
+==Values==
+Values are in-game units, and as such, can be difficult to mess with. 1000 is the default behavior
+ Accepts any floating point value.
 =g_instantBuild=
 Allows for instant building, like devmap, at any time
 ==Values==

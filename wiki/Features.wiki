@@ -1,5 +1,11 @@
 ﻿#summary Features used by this qvm
 #labels Featured
+=Say Area range=
+Lets the admin configure the range of say area.
+
+[Cvars#g_sayArea]
+ * Author: _Paradox_ inspired by _Lakitu7_
+ * Link: [http://projects.mercenariesguild.net/projects/mgdev/repository/revisions/1a11410eaccce172aa2b80c2949fa16c96029290 MGDev commit]
 =Instant Build=
 Allows for instantbuilding at ANY time.
 
