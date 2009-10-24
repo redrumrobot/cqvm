@@ -1058,7 +1058,7 @@ void ClientTimerActions( gentity_t *ent, int msec )
           BG_DeactivateUpgrade( UP_JETPACK, client->ps.stats );
         } else if( client->jetpackfuel < 10.0f && client->jetpackfuel > 0.0f) {
           client->jetpackfuel = client->jetpackfuel - mod_jetpackConsume.value;
-          trap_SendServerCommand( client - level.clients, "cp \"^3Fuel ^1Low!!!!!^7\nLand now.\"" );
+          trap_SendServerCommand( client - level.clients, "cp \"^3Fuel ^1Low!^7\nLand now.\"" );
         } else {
           client->jetpackfuel = client->jetpackfuel - mod_jetpackConsume.value;
         }
