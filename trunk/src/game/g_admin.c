@@ -170,8 +170,8 @@ g_admin_cmd_t g_admin_cmds[ ] =
     },
 
     {"invisible", G_admin_invisible, "invisible",
-    "hides a player so they cannot be seen in playerlists",
-    "[^3+|-^7](^5slot#^7)"
+      "hides a player so they cannot be seen in playerlists",
+      ""
     },
 
     {"kick", G_admin_kick, "kick",
@@ -1753,6 +1753,71 @@ void G_admin_namelog_update( gclient_t *client, qboolean disconnect )
       // if this player is connecting, they are no longer banned
       if( !disconnect )
         g_admin_namelog[ i ]->banned = qfalse;
+
+      //check other things like if user was denybuild or muted or denyweapon and restore them
+      if( !disconnect )
+      {
+        if( g_admin_namelog[ i ]->muted )
+        {
+          client->pers.muted = qtrue;
+          client->pers.muteExpires = g_admin_namelog[ i ]->muteExpires;
+          G_AdminsPrintf( "^7%s^7's mute has been restored\n", client->pers.netname );
+          g_admin_namelog[ i ]->muted = qfalse;
+        }
+        if( g_admin_namelog[ i ]->denyBuild )
+        {
+          client->pers.denyBuild = qtrue;
+          G_AdminsPrintf( "^7%s^7's Denybuild has been restored\n", client->pers.netname );
+          g_admin_namelog[ i ]->denyBuild = qfalse;
+        }
+        if( g_admin_namelog[ i ]->denyHumanWeapons > 0 || g_admin_namelog[ i ]->denyAlienClasses > 0 )
+        {
+          if( g_admin_namelog[ i ]->denyHumanWeapons > 0 )
+            client->pers.denyHumanWeapons =  g_admin_namelog[ i ]->denyHumanWeapons;
+          if( g_admin_namelog[ i ]->denyAlienClasses > 0 )
+            client->pers.denyAlienClasses =  g_admin_namelog[ i ]->denyAlienClasses;
+
+          G_AdminsPrintf( "^7%s^7's Denyweapon has been restored\n", client->pers.netname );
+          g_admin_namelog[ i ]->denyHumanWeapons = 0;
+          g_admin_namelog[ i ]->denyAlienClasses = 0;
+        }
+        if( g_admin_namelog[ i ]->specExpires > 0 )
+        {
+          client->pers.specExpires = g_admin_namelog[ i ]->specExpires;
+          G_AdminsPrintf( "^7%s^7's Putteam spectator has been restored\n", client->pers.netname );
+          g_admin_namelog[ i ]->specExpires = 0;
+        }
+      }
+      else
+      {
+        //for mute
+        if( G_IsMuted( client ) )
+        {
+          g_admin_namelog[ i ]->muted = qtrue;
+          g_admin_namelog[ i ]->muteExpires = client->pers.muteExpires;
+        }
+        //denybuild
+        if( client->pers.denyBuild )
+        {
+          g_admin_namelog[ i ]->denyBuild = qtrue;
+        }
+        //denyweapon humans
+        if( client->pers.denyHumanWeapons > 0 )
+        {
+          g_admin_namelog[ i ]->denyHumanWeapons = client->pers.denyHumanWeapons;
+        }
+        //denyweapon aliens
+        if( client->pers.denyAlienClasses > 0 )
+        {
+          g_admin_namelog[ i ]->denyAlienClasses = client->pers.denyAlienClasses;
+        }
+        //putteam spec
+        if( client->pers.specExpires > 0 )
+        {
+          g_admin_namelog[ i ]->specExpires = client->pers.specExpires;
+        }
+      }
+
 
       return;
     }
@@ -8145,6 +8210,12 @@ qboolean G_admin_nobuild(gentity_t *ent, int skiparg )
 
 qboolean G_admin_invisible( gentity_t *ent, int skiparg )
 {
+  if( !ent )
+  {
+    ADMP( "!invisible: console can not become invisible.\n" );
+    return qfalse;
+  }
+  
   if ( ent->client->sess.invisible != qtrue )
   {
     // Make the player invisible
