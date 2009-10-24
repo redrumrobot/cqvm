@@ -1421,6 +1421,7 @@ extern  vmCvar_t  g_disabledClasses;
 extern  vmCvar_t  g_disabledBuildables;
 extern  vmCvar_t  g_buildPointsRecoverRate;
 extern  vmCvar_t  g_dynamicBuildPoints;
+extern  vmCvar_t  g_instantBuild;
 
 extern  vmCvar_t  g_markDeconstruct;
 extern  vmCvar_t  g_markDeconstructMode;

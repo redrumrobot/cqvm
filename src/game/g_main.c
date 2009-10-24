@@ -156,6 +156,7 @@ vmCvar_t  g_disabledClasses;
 vmCvar_t  g_disabledBuildables;
 vmCvar_t  g_buildPointsRecoverRate;
 vmCvar_t  g_dynamicBuildPoints;
+vmCvar_t  g_instantBuild;
 
 vmCvar_t  g_markDeconstruct;
 vmCvar_t  g_markDeconstructMode;
@@ -423,6 +424,7 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_disabledBuildables, "g_disabledBuildables", "", CVAR_ROM, 0, qfalse  },
   { &g_buildPointsRecoverRate, "g_buildPointsRecoverRate", "0", CVAR_ARCHIVE, 0, qfalse  },
   { &g_dynamicBuildPoints, "g_dynamicBuildPoints", "0", CVAR_ARCHIVE, 0, qfalse  },
+  { &g_instantBuild, "g_instantBuild", "0", CVAR_ARCHIVE, 0, qfalse  },
 
   { &g_chatTeamPrefix, "g_chatTeamPrefix", "1", CVAR_ARCHIVE  },
   { &g_actionPrefix, "g_actionPrefix", "* ", CVAR_ARCHIVE, 0, qfalse },
