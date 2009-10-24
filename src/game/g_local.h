@@ -1434,6 +1434,7 @@ extern  vmCvar_t  g_nextMap;
 extern  vmCvar_t  g_idleMapSwitch;
 extern  vmCvar_t  g_initialMapRotation;
 extern  vmCvar_t  g_chatTeamPrefix;
+extern  vmCvar_t  g_sayAreaRange;
 extern  vmCvar_t  g_actionPrefix;
 extern  vmCvar_t  g_floodMaxDemerits;
 extern  vmCvar_t  g_floodMinTime;

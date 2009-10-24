@@ -1216,11 +1216,14 @@ static void Cmd_SayArea_f( gentity_t *ent )
   int    num, i;
   int    color = COLOR_BLUE;
   const char  *prefix;
-  vec3_t range = { HELMET_RANGE, HELMET_RANGE, HELMET_RANGE };
+  vec3_t range = { 1000.0f, 1000.0f, 1000.0f };
   vec3_t mins, maxs;
   char   *msg = ConcatArgs( 1 );
   char   name[ 64 ];
   
+  for(i = 0; i < 3; i++ )
+    range[ i ] = g_sayAreaRange.value;
+
    if( g_floodMinTime.integer )
    if ( G_Flood_Limited( ent ) )
    {

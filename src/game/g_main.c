@@ -173,6 +173,7 @@ vmCvar_t  g_shove;
 
 vmCvar_t  g_mapConfigs;
 vmCvar_t  g_chatTeamPrefix;
+vmCvar_t  g_sayAreaRange;
 vmCvar_t  g_actionPrefix;
 vmCvar_t  g_floodMaxDemerits;
 vmCvar_t  g_floodMinTime;
@@ -427,6 +428,7 @@ static cvarTable_t   gameCvarTable[ ] =
   { &g_instantBuild, "g_instantBuild", "0", CVAR_ARCHIVE, 0, qfalse  },
 
   { &g_chatTeamPrefix, "g_chatTeamPrefix", "1", CVAR_ARCHIVE  },
+  { &g_sayAreaRange, "g_sayAreaRange", "1000", CVAR_ARCHIVE, 0, qtrue },
   { &g_actionPrefix, "g_actionPrefix", "* ", CVAR_ARCHIVE, 0, qfalse },
   { &g_floodMaxDemerits, "g_floodMaxDemerits", "5000", CVAR_ARCHIVE, 0, qfalse  },
   { &g_floodMinTime, "g_floodMinTime", "2000", CVAR_ARCHIVE, 0, qfalse  },
